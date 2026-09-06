@@ -1,0 +1,18 @@
+name = "shyamstudio-platform"
+compatibility_date = "2024-03-20"
+
+# Main entry point for the backend API
+main = "api/index.ts"
+
+# Serve the built frontend static assets
+[site]
+bucket = "./dist"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "invoices-db"
+database_id = "mock-id-for-local-dev"
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "invoices-bucket"

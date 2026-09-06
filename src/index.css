@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+@layer base {
+  @media print {
+    html, body {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+  }
+}
+
+@theme {
+  --color-ink: #111111;
+  --color-paper: #fafaf7;
+  --color-muted: #f3f3f1;
+  --color-orange-brand: #f47a21;
+  --color-body: #4b4b4b;
+  --font-serif: "Cormorant Garamond", Georgia, serif;
+  --font-sans: "Inter", Arial, sans-serif;
+  --container-max-w: 1180px;
+}
+
+/* ── Global reset ───────────────────────────────────────────────────────────*/
+*, *::before, *::after { box-sizing: border-box; }
+
+:root {
+  --radius: 0px;
+  font-family: var(--font-sans);
+  color: var(--color-body);
+  background-color: var(--color-ink);
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Prevent global horizontal overflow ────────────────────────────────────*/
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  background-color: var(--color-ink);
+}
+
+/* ── Fluid images & media ───────────────────────────────────────────────────*/
+img, video, canvas, iframe {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* ── Touch targets ─ minimum 48 × 48 px ────────────────────────────────────*/
+button, [role="button"] {
+  min-height: 44px;
+  min-width: 44px;
+  touch-action: manipulation;
+  cursor: pointer;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--color-paper);
+  /* Prevent overflow on very small screens */
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* ── Tables: always horizontally scrollable ─────────────────────────────────*/
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* Wrap standalone tables that might overflow */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
