@@ -138,6 +138,18 @@ export function BillGenerator() {
         const pdfBlob = await html2pdf().set(opt).from(docRef.current).output('blob');
         const file = new File([pdfBlob], `bill_${billNo}.pdf`, { type: 'application/pdf' });
 
+        // Upload to R2 Cloud Storage
+        try {
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('filename', `bill_${billNo}_${Date.now()}.pdf`);
+          fetch('/api/upload', { method: 'POST', body: formData })
+            .then(res => console.log('R2 backup initiated', res.status))
+            .catch(err => console.error('R2 backup failed', err));
+        } catch (uploadErr) {
+          console.error("R2 backup error:", uploadErr);
+        }
+
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           try {
             await navigator.share({
