@@ -12,7 +12,7 @@ declare module 'html2pdf.js' {
     from(el: HTMLElement): Html2PdfInstance;
     save(): Promise<void>;
     toPdf(): Html2PdfInstance;
-    output(type: string): Promise<unknown>;
+    output(type: string): Promise<any>;
   }
   function html2pdf(): Html2PdfInstance;
   export = html2pdf;
