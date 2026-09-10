@@ -114,13 +114,11 @@ export function BillGenerator() {
 		if (!docRef.current) return;
 		setDownloading(true);
 		try {
-			docRef.current.classList.add("print-mode");
 			await downloadAsPDF(docRef.current, `bill_${billNo}.pdf`);
 		} catch (e) {
 			console.error(e);
 			alert("Failed to generate PDF");
 		} finally {
-			docRef.current.classList.remove("print-mode");
 			setDownloading(false);
 		}
 	};
@@ -130,13 +128,11 @@ export function BillGenerator() {
 		if (!docRef.current) return;
 		setDownloading(true);
 		try {
-			docRef.current.classList.add("print-mode");
 			await downloadAsJPG(docRef.current, `bill_${billNo}.jpg`);
 		} catch (e) {
 			console.error(e);
 			alert("Failed to generate JPG");
 		} finally {
-			docRef.current.classList.remove("print-mode");
 			setDownloading(false);
 		}
 	};
@@ -536,20 +532,21 @@ export function BillGenerator() {
         .bill-container .signature { padding:0 12px 0 0; font-family:Georgia, "Times New Roman", serif; font-size:10px; text-align:center; }
 
         @media print {
+          @page { size: A4 portrait; margin: 0; }
           .bill-toolbar { display:none !important; }
           .bill-editor-root { height:auto; background:none; }
           .bill-canvas { padding:0; overflow:visible; }
-          .bill-container .bill-page-a4 { margin:0; box-shadow:none; width:8.27in !important; min-height:11.69in !important; display:grid !important; grid-template-columns:1fr 1fr !important; grid-template-rows:1fr 1fr !important; }
-          .bill-container .bill { display:block !important; border-right:1px dashed #ccc !important; border-bottom:1px dashed #ccc !important; }
+          .bill-container .bill-page-a4 { margin:0; box-shadow:none; width:210mm !important; height:148.5mm !important; overflow:hidden !important; margin:0 !important; padding:0 !important; display:grid !important; grid-template-columns:1fr 1fr !important; grid-template-rows:1fr !important; }
+          .bill-container .bill { display:block !important; border-right:1px dashed #ccc !important; border-bottom:none !important; }
           .bill-container .bill:nth-child(even) { border-right:none !important; }
-          .bill-container .bill:nth-child(n+3) { border-bottom:none !important; }
+          .bill-container .bill:nth-child(n+3) { display:none !important; }
           html,body { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
         }
 
-        .print-mode .bill-page-a4 { width:8.27in !important; min-height:11.69in !important; display:grid !important; grid-template-columns:1fr 1fr !important; grid-template-rows:1fr 1fr !important; box-shadow:none !important; }
-        .print-mode .bill { display:block !important; border-right:1px dashed #ccc !important; border-bottom:1px dashed #ccc !important; }
+        .print-mode .bill-page-a4 { width:210mm !important; height:148.5mm !important; overflow:hidden !important; margin:0 !important; padding:0 !important; display:grid !important; grid-template-columns:1fr 1fr !important; grid-template-rows:1fr !important; box-shadow:none !important; }
+        .print-mode .bill { display:block !important; border-right:1px dashed #ccc !important; border-bottom:none !important; }
         .print-mode .bill:nth-child(even) { border-right:none !important; }
-        .print-mode .bill:nth-child(n+3) { border-bottom:none !important; }
+        .print-mode .bill:nth-child(n+3) { display:none !important; }
       `}</style>
 
 			{/* TOOLBAR */}
