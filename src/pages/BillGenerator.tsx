@@ -451,12 +451,13 @@ export function BillGenerator() {
 						background: "#064e3b",
 						color: "#fff",
 						textAlign: "center",
-						padding: "3px",
-						fontSize: "9px",
+						padding: "8px 4px",
+						fontSize: "12px",
 						fontWeight: "bold",
-						marginTop: "8px",
+						marginTop: "auto",
 						letterSpacing: "0.02em",
-						borderRadius: "2px",
+						borderRadius: "4px",
+						width: "100%"
 					}}
 				>
 					We cover all types of photography and videography events”
@@ -497,40 +498,39 @@ export function BillGenerator() {
         .bill-wa-btn:hover { background:#15803d !important; }
         .bill-canvas { flex:1; overflow-y:auto; padding:40px 20px; }
 
-        /* A4 Layout CSS with 4 A6 bills */
         .bill-container { --red:#f10b0b; --ink:#111; --watermark:#c8c8c8; color:var(--ink); font-family:Arial, Helvetica, sans-serif; }
         .bill-container * { box-sizing:border-box; }
         .bill-container .bill-page-a4 { width:8.27in; min-height:11.69in; margin:0 auto; display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; background:#fff; box-shadow:0 4px 24px #0002; }
-        .bill-container .bill { position:relative; width:100%; height:100%; padding:18px 21px 16px; overflow:hidden; border-right:1px dashed #ccc; border-bottom:1px dashed #ccc; }
+        .bill-container .bill { position:relative; width:100%; height:100%; padding:20px 24px; overflow:hidden; border-right:1px dashed #ccc; border-bottom:1px dashed #ccc; }
         .bill-container .bill:nth-child(even) { border-right:none; }
         .bill-container .bill:nth-child(n+3) { border-bottom:none; }
-        .bill-container .watermark { position:absolute; inset:107px -50px 85px; z-index:0; pointer-events:none; transform:rotate(-24deg); color:var(--watermark); font-family:cursive; font-size:54px; font-weight:700; line-height:1.85; opacity:.2; white-space:nowrap; text-align:center; }
-        .bill-container .content { position:relative; z-index:1; }
-        .bill-container .brand { margin:0; text-align:center; color:var(--red); font-family:Georgia, "Times New Roman", serif; font-size:22px; line-height:1.15; font-weight:700; }
-        .bill-container .header-rule { margin:6px -21px 0; border-top:2px double var(--ink); }
-        .bill-container .address { padding:4px 5px; border-bottom:1px solid var(--ink); text-align:center; font-size:7.5px; line-height:1.35; font-weight:700; letter-spacing:.02em; background-color:#111827; color:#ffffff; border-radius:2px; margin-top:2px; }
-        .bill-container .meta { display:flex; justify-content:space-between; padding:6px 3px 13px; font-size:9px; font-weight:700; }
-        .bill-container .fields { display:grid; gap:6px; margin:0 3px 10px; font-size:9px; font-weight:700; }
-        .bill-container .field { display:flex; align-items:end; gap:4px; }
+        .bill-container .watermark { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; z-index:0; pointer-events:none; transform:rotate(-24deg); color:var(--watermark); font-family:cursive; font-size:42px; font-weight:700; line-height:1.5; opacity:.2; white-space:nowrap; text-align:center; }
+        .bill-container .content { position:relative; z-index:1; height:100%; display:flex; flex-direction:column; }
+        .bill-container .brand { margin:0; text-align:center; color:var(--red); font-family:Georgia, "Times New Roman", serif; font-size:28px; line-height:1.2; font-weight:700; }
+        .bill-container .header-rule { margin:8px -24px 0; border-top:2px double var(--ink); }
+        .bill-container .address { padding:6px 10px; text-align:center; font-size:9.5px; line-height:1.5; font-weight:700; letter-spacing:.02em; background-color:#111827; color:#ffffff; border-radius:4px; margin-top:4px; }
+        .bill-container .meta { display:flex; justify-content:space-between; padding:8px 4px 12px; font-size:11px; font-weight:700; }
+        .bill-container .fields { display:grid; gap:8px; margin:0 4px 12px; font-size:11px; font-weight:700; }
+        .bill-container .field { display:flex; align-items:end; gap:6px; }
         .bill-container .field .label { white-space:nowrap; }
         .bill-container .line { flex:1; min-width:0; min-height: 1.2em; border-bottom:1px solid var(--ink); display:inline-block; }
         .bill-container .line.short { flex:0 0 35%; }
-        .bill-container .bill-table { width:100%; border-collapse:collapse; table-layout:fixed; font-size:9px; }
+        .bill-container .bill-table { width:100%; border-collapse:collapse; table-layout:fixed; font-size:11px; flex:1; }
         .bill-container .bill-table th, .bill-container .bill-table td { border:1.5px solid var(--ink); }
-        .bill-container .bill-table th { height:24px; color:var(--red); font-family:Georgia, "Times New Roman", serif; font-size:10px; }
-        .bill-container .bill-table th:nth-child(1) { width:6%; }
-        .bill-container .bill-table th:nth-child(2) { width:54%; }
-        .bill-container .bill-table th:nth-child(3) { width:10%; }
-        .bill-container .bill-table th:nth-child(4) { width:15%; }
-        .bill-container .bill-table th:nth-child(5) { width:15%; }
-        .bill-container .bill-table tbody td { height:232px; vertical-align:top; }
-        .bill-container .bill-table .notes { padding:0 4px 4px; border-right:0; line-height:1.3; }
-        .bill-container .bill-table .total-label { vertical-align:middle; height:21px; color:var(--red); font-family:Georgia, "Times New Roman", serif; font-size:10px; font-weight:700; padding-left:5px; }
-        .bill-container .bill-table .total-cell { height:21px; }
-        .bill-container .bill-table .amount-cell { height:21px; font-weight: bold; text-align: center; }
-        .bill-container .footer { display:flex; justify-content:space-between; align-items:flex-end; margin-top:5px; }
-        .bill-container .terms { color:var(--red); font-family:Georgia, "Times New Roman", serif; font-size:9px; line-height:1.18; font-weight:700; }
-        .bill-container .signature { padding:0 9px 2px 0; font-family:Georgia, "Times New Roman", serif; font-size:8px; }
+        .bill-container .bill-table th { height:26px; color:var(--red); font-family:Georgia, "Times New Roman", serif; font-size:12px; }
+        .bill-container .bill-table th:nth-child(1) { width:8%; }
+        .bill-container .bill-table th:nth-child(2) { width:48%; }
+        .bill-container .bill-table th:nth-child(3) { width:12%; }
+        .bill-container .bill-table th:nth-child(4) { width:16%; }
+        .bill-container .bill-table th:nth-child(5) { width:16%; }
+        .bill-container .bill-table tbody td { vertical-align:top; }
+        .bill-container .bill-table .notes { padding:4px; border-right:0; line-height:1.4; }
+        .bill-container .bill-table .total-label { vertical-align:middle; height:24px; color:var(--red); font-family:Georgia, "Times New Roman", serif; font-size:11px; font-weight:700; padding-left:6px; }
+        .bill-container .bill-table .total-cell { height:24px; }
+        .bill-container .bill-table .amount-cell { height:24px; font-weight: bold; text-align: center; }
+        .bill-container .footer { display:flex; justify-content:space-between; align-items:flex-end; margin-top:8px; padding-bottom:8px; }
+        .bill-container .terms { color:var(--red); font-family:Georgia, "Times New Roman", serif; font-size:10px; line-height:1.3; font-weight:700; }
+        .bill-container .signature { padding:0 12px 0 0; font-family:Georgia, "Times New Roman", serif; font-size:10px; text-align:center; }
 
         @media print {
           .bill-toolbar { display:none !important; }
