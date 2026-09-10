@@ -24,7 +24,7 @@ export function BillGenerator() {
 	// View states
 	const [mode, setMode] = useState<"form" | "preview">("form");
 	const [downloading, setDownloading] = useState(false);
-	const [zoom, setZoom] = useState(85);
+	const [zoom, setZoom] = useState(150);
 
 	// Form Data
 	const [id] = useState(uid);
@@ -114,11 +114,13 @@ export function BillGenerator() {
 		if (!docRef.current) return;
 		setDownloading(true);
 		try {
+			docRef.current.classList.add("print-mode");
 			await downloadAsPDF(docRef.current, `bill_${billNo}.pdf`);
 		} catch (e) {
 			console.error(e);
 			alert("Failed to generate PDF");
 		} finally {
+			docRef.current.classList.remove("print-mode");
 			setDownloading(false);
 		}
 	};
@@ -128,11 +130,13 @@ export function BillGenerator() {
 		if (!docRef.current) return;
 		setDownloading(true);
 		try {
+			docRef.current.classList.add("print-mode");
 			await downloadAsJPG(docRef.current, `bill_${billNo}.jpg`);
 		} catch (e) {
 			console.error(e);
 			alert("Failed to generate JPG");
 		} finally {
+			docRef.current.classList.remove("print-mode");
 			setDownloading(false);
 		}
 	};
@@ -500,10 +504,9 @@ export function BillGenerator() {
 
         .bill-container { --red:#f10b0b; --ink:#111; --watermark:#c8c8c8; color:var(--ink); font-family:Arial, Helvetica, sans-serif; }
         .bill-container * { box-sizing:border-box; }
-        .bill-container .bill-page-a4 { width:8.27in; min-height:11.69in; margin:0 auto; display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; background:#fff; box-shadow:0 4px 24px #0002; }
-        .bill-container .bill { position:relative; width:100%; height:100%; padding:20px 24px; overflow:hidden; border-right:1px dashed #ccc; border-bottom:1px dashed #ccc; }
-        .bill-container .bill:nth-child(even) { border-right:none; }
-        .bill-container .bill:nth-child(n+3) { border-bottom:none; }
+        .bill-container .bill-page-a4 { width:4.135in; min-height:5.845in; margin:0 auto; background:#fff; box-shadow:0 4px 24px #0002; display:block; }
+        .bill-container .bill { position:relative; width:100%; height:100%; padding:20px 24px; overflow:hidden; border:none; }
+        .bill-container .bill:nth-child(n+2) { display:none; }
         .bill-container .watermark { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; z-index:0; pointer-events:none; transform:rotate(-24deg); color:var(--watermark); font-family:cursive; font-size:42px; font-weight:700; line-height:1.5; opacity:.2; white-space:nowrap; text-align:center; }
         .bill-container .content { position:relative; z-index:1; height:100%; display:flex; flex-direction:column; }
         .bill-container .brand { margin:0; text-align:center; color:var(--red); font-family:Georgia, "Times New Roman", serif; font-size:28px; line-height:1.2; font-weight:700; }
@@ -536,9 +539,17 @@ export function BillGenerator() {
           .bill-toolbar { display:none !important; }
           .bill-editor-root { height:auto; background:none; }
           .bill-canvas { padding:0; overflow:visible; }
-          .bill-container .bill-page-a4 { margin:0; box-shadow:none; }
+          .bill-container .bill-page-a4 { margin:0; box-shadow:none; width:8.27in !important; min-height:11.69in !important; display:grid !important; grid-template-columns:1fr 1fr !important; grid-template-rows:1fr 1fr !important; }
+          .bill-container .bill { display:block !important; border-right:1px dashed #ccc !important; border-bottom:1px dashed #ccc !important; }
+          .bill-container .bill:nth-child(even) { border-right:none !important; }
+          .bill-container .bill:nth-child(n+3) { border-bottom:none !important; }
           html,body { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
         }
+
+        .print-mode .bill-page-a4 { width:8.27in !important; min-height:11.69in !important; display:grid !important; grid-template-columns:1fr 1fr !important; grid-template-rows:1fr 1fr !important; box-shadow:none !important; }
+        .print-mode .bill { display:block !important; border-right:1px dashed #ccc !important; border-bottom:1px dashed #ccc !important; }
+        .print-mode .bill:nth-child(even) { border-right:none !important; }
+        .print-mode .bill:nth-child(n+3) { border-bottom:none !important; }
       `}</style>
 
 			{/* TOOLBAR */}
