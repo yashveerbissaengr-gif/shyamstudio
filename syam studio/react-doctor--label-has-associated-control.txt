@@ -1,0 +1,29 @@
+Rule: react-doctor/label-has-associated-control
+Severity: warning
+Category: Accessibility
+Count: 17
+
+Screen reader users can't tell which input this label names because it's tied to none, so add `htmlFor` or wrap the input inside it.
+
+Suggestion: Tie every label to a control with `htmlFor`, or by nesting the input.
+
+Curl with no cache & follow the canonical fix and false positive check recipe before fixing: https://react.doctor/docs/rules/react-doctor/label-has-associated-control
+
+Files:
+  src/pages/BillGenerator.tsx:194
+  src/pages/BillGenerator.tsx:198
+  src/pages/BillGenerator.tsx:205
+  src/pages/BillGenerator.tsx:209
+  src/pages/BillGenerator.tsx:215
+  src/pages/BillGenerator.tsx:250
+  src/pages/BillGenerator.tsx:260
+  src/pages/BillGenerator.tsx:264
+  src/pages/BillGenerator.tsx:276
+  src/pages/BillGenerator.tsx:282
+  src/pages/BillGenerator.tsx:286
+  src/pages/BillGenerator.tsx:290
+  src/pages/Home.tsx:552
+  src/pages/Home.tsx:556
+  src/pages/Home.tsx:561
+  src/pages/Home.tsx:565
+  src/pages/Home.tsx:577

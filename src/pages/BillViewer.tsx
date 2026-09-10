@@ -1,62 +1,67 @@
-import { useRef, useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { storage } from '../services/storage';
-import type { BillData } from '../types/invoice';
+import { useRef, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import { storage } from "../services/storage";
+import type { BillData } from "../types/invoice";
+import { downloadAsJPG, downloadAsPDF } from "../utils/downloadHelper";
 
 export function BillViewer() {
-  const { id } = useParams();
-  const [bill, setBill] = useState<BillData | null>(null);
-  const [zoom, setZoom] = useState(85);
-  const [downloading, setDownloading] = useState(false);
-  const docRef = useRef<HTMLDivElement>(null);
+	const { id } = useParams();
+	const [bill] = useState<BillData | null>(() => (id ? storage.getBillById(id) || null : null));
+	const [zoom, setZoom] = useState(85);
+	const [downloading, setDownloading] = useState(false);
+	const docRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (id) {
-      const data = storage.getBillById(id);
-      if (data) {
-        setBill(data);
-      }
-    }
-  }, [id]);
+	const handleDownloadJPG = async () => {
+		if (!docRef.current || !bill) return;
+		setDownloading(true);
+		try {
+			await downloadAsJPG(docRef.current, `bill_${bill.billNo}.jpg`);
+		} catch (e) {
+			console.error(e);
+			alert("Failed to generate JPG");
+		} finally {
+			setDownloading(false);
+		}
+	};
 
-  const downloadPDF = async () => {
-    if (!docRef.current || !bill) return;
-    setDownloading(true);
-    const html2pdf = (await import('html2pdf.js')).default;
-    const opt = {
-      margin: 0,
-      filename: `bill_${bill.billNo}.pdf`,
-      image: { type: 'jpeg' as const, quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const },
-    };
-    await html2pdf().set(opt).from(docRef.current).save();
-    setDownloading(false);
-  };
+	const handleDownloadPDF = async () => {
+		if (!docRef.current || !bill) return;
+		setDownloading(true);
+		try {
+			await downloadAsPDF(docRef.current, `bill_${bill.billNo}.pdf`);
+		} catch (e) {
+			console.error(e);
+			alert("Failed to generate PDF");
+		} finally {
+			setDownloading(false);
+		}
+	};
 
-  const handleSendWhatsApp = () => {
-    if (!bill) return;
-    let targetMobile = bill.customerMobile;
-    if (!targetMobile) {
-      const input = prompt("Please enter the customer's WhatsApp number (with country code, e.g., 919876543210):");
-      if (!input) return;
-      targetMobile = input;
-    }
-    const cleanMobile = targetMobile.replace(/\D/g, '');
-    const message = `Hello ${bill.customerName ? bill.customerName : 'Customer'},\n\nYour bill details from Shyam Studio:\nBill No: ${bill.billNo}\nDate: ${bill.date}\nTotal Amount: ₹${bill.total}\nAdvance: ₹${bill.advance}\nBalance: ₹${bill.balance}\n\nThank you!`;
-    const encoded = encodeURIComponent(message);
-    const url = `https://wa.me/${cleanMobile}?text=${encoded}`;
-    window.open(url, '_blank');
-  };
+	const handleSendWhatsApp = () => {
+		if (!bill) return;
+		let targetMobile = bill.customerMobile;
+		if (!targetMobile) {
+			const input = prompt(
+				"Please enter the customer's WhatsApp number (with country code, e.g., 919876543210):",
+			);
+			if (!input) return;
+			targetMobile = input;
+		}
+		const cleanMobile = targetMobile.replace(/\D/g, "");
+		const message = `Hello ${bill.customerName ? bill.customerName : "Customer"},\n\nYour bill details from Shyam Studio:\nBill No: ${bill.billNo}\nDate: ${bill.date}\nTotal Amount: ₹${bill.total}\nAdvance: ₹${bill.advance}\nBalance: ₹${bill.balance}\n\nThank you!`;
+		const encoded = encodeURIComponent(message);
+		const url = `https://wa.me/${cleanMobile}?text=${encoded}`;
+		window.open(url, "_blank");
+	};
 
-  if (!bill) {
-    return <div className="text-center py-20 text-gray-500">Bill not found.</div>;
-  }
+	if (!bill) {
+		return <div className="text-center py-20 text-gray-500">Bill not found.</div>;
+	}
 
-  return (
-    <div className="bill-editor-root">
-      <style>{`
-        .bill-editor-root { display:flex; flex-direction:column; height:calc(100vh - 64px); background:#e5e7eb; }
+	return (
+		<div className="bill-editor-root">
+			<style>{`
+        .bill-editor-root { display:flex; flex-direction:column; height:100vh; background:#e5e7eb; }
         .bill-toolbar {
           display:flex; align-items:center; gap:4px; padding:8px 16px;
           background:#1a0a00; color:#fef3c7; flex-shrink:0; flex-wrap:wrap;
@@ -68,7 +73,9 @@ export function BillViewer() {
         }
         .bill-toolbar button:hover, .bill-toolbar a:hover { background:rgba(255,255,255,0.2); }
         .bill-toolbar .sep { width:1px; min-height: 1.2em; background:#7c4a00; margin:0 8px; }
-        .bill-toolbar .zoom-ctl { display:flex; align-items:center; gap:6px; font-size:13px; margin-right: 12px; }
+        .bill-toolbar .zoom-ctl { display:flex; align-items:center; gap:6px; font-size:13px; margin-right: 12px; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; color: #fef3c7; }
+        .bill-toolbar .zoom-ctl button { background: transparent; padding: 4px 8px; border: none; color: inherit; cursor: pointer; font-weight: bold; }
+        .bill-toolbar .zoom-ctl button:hover { background: rgba(255,255,255,0.2); }
         .bill-dl-btn { background:#c00 !important; color:#fff !important; }
         .bill-dl-btn:hover { background:#a00 !important; }
         .bill-wa-btn { background:#16a34a !important; color:#fff !important; }
@@ -83,7 +90,7 @@ export function BillViewer() {
         .bill-container .content { position:relative; z-index:1; }
         .bill-container .brand { margin:0; text-align:center; color:var(--red); font-family:Georgia, "Times New Roman", serif; font-size:45px; line-height:1.15; font-weight:700; }
         .bill-container .header-rule { margin:13px -42px 0; border-top:4px double var(--ink); }
-        .bill-container .address { padding:7px 5px 8px; border-bottom:2px solid var(--ink); text-align:center; font-size:15px; line-height:1.35; font-weight:700; letter-spacing:.02em; }
+        .bill-container .address { padding:8px 10px; border-bottom:2px solid var(--ink); text-align:center; font-size:15px; line-height:1.35; font-weight:700; letter-spacing:.02em; background-color:#111827; color:#ffffff; border-radius:4px; margin-top:4px; }
         .bill-container .meta { display:flex; justify-content:space-between; padding:12px 7px 27px; font-size:18px; font-weight:700; }
         .bill-container .fields { display:grid; gap:12px; margin:0 7px 20px; font-size:18px; font-weight:700; }
         .bill-container .field { display:flex; align-items:end; gap:8px; }
@@ -116,106 +123,211 @@ export function BillViewer() {
         }
       `}</style>
 
-      {/* TOOLBAR */}
-      <div className="bill-toolbar">
-        <Link to="/bill-dashboard">⬅ Back to Dashboard</Link>
-        <div className="sep" />
-        <div className="zoom-ctl">
-          <button onClick={() => setZoom(z => Math.max(40, z - 10))}>−</button>
-          <span style={{ minWidth: 40, textAlign: 'center' }}>{zoom}%</span>
-          <button onClick={() => setZoom(z => Math.min(200, z + 10))}>+</button>
-        </div>
-        
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
-          <button className="bill-wa-btn" onClick={handleSendWhatsApp}>💬 Send WA</button>
-          <button onClick={() => window.print()}>🖨 Print</button>
-          <button className="bill-dl-btn" disabled={downloading} onClick={downloadPDF}>
-            {downloading ? '⏳ Generating…' : '⬇ Download PDF'}
-          </button>
-        </div>
-      </div>
+			{/* TOOLBAR */}
+			<div className="bill-toolbar">
+				<Link to="/dashboard">⬅ Back to Dashboard</Link>
+				<div className="sep" />
+				<div className="zoom-ctl">
+					<button onClick={() => setZoom((z) => Math.max(40, z - 10))} aria-label="Zoom out">
+						−
+					</button>
+					<span style={{ minWidth: 40, textAlign: "center" }}>{zoom}%</span>
+					<button onClick={() => setZoom((z) => Math.min(200, z + 10))} aria-label="Zoom in">
+						+
+					</button>
+				</div>
 
-      {/* CANVAS */}
-      <div className="bill-canvas">
-        <div
-          ref={docRef}
-          className="bill-container"
-          style={{ transform: `scale(${zoom / 100})`, transformOrigin: 'top center', transition: 'transform .2s' }}
-        >
-          <main className="bill">
-            {bill.showWatermark && (
-              <div className="watermark" aria-hidden="true">
-                <span style={{ whiteSpace: 'pre-wrap' }}>{bill.watermarkText}</span>
-              </div>
-            )}
-            <div className="content">
-              <h1 className="brand">
-                <span>Shyam Graphic Designer</span>
-              </h1>
-              <div className="header-rule"></div>
-              <div className="address">
-                <span>
-                  PLAT NO. 1, SHOP NO. 3 BALAJI NAGAR, NEAR BY- BHAWANI HOSPITEL OPPOSITE<br/>PUNAPU ROAD, PARDI NAGPUR. 35 &nbsp;&nbsp;&nbsp; MO. 7775854937, 9404291477
-                </span>
-              </div>
-              <div className="meta">
-                <span>No. <span style={{borderBottom:'1.5px solid #111', padding:'0 8px'}}>{bill.billNo}</span></span>
-                <span>Date :- <span style={{borderBottom:'1.5px solid #111', padding:'0 8px'}}>{bill.date}</span></span>
-              </div>
-              <section className="fields" aria-label="Customer details">
-                <div className="field">
-                  <span className="label">Name :-</span>
-                  <span className="line" style={{padding:'0 8px'}}>{bill.customerName}</span>
-                  <span className="label">Mo.</span>
-                  <span className="line short" style={{padding:'0 8px'}}>{bill.customerMobile}</span>
-                </div>
-                <div className="field">
-                  <span className="label">Address :-</span>
-                  <span className="line" style={{padding:'0 8px'}}>{bill.customerAddress}</span>
-                </div>
-              </section>
-              <table className="bill-table" aria-label="Bill items">
-                <thead><tr><th>Sr</th><th>Description</th><th>Qty</th><th>Rate</th><th>Amount</th></tr></thead>
-                <tbody>
-                  <tr>
-                    <td style={{ padding: '8px 4px', textAlign: 'center' }}>
-                      {bill.items.map(row => <div key={row.id}>{row.sr}</div>)}
-                    </td>
-                    <td className="notes">
-                      <div style={{ padding: '8px 4px' }}>
-                        {bill.items.map(row => <div key={row.id}>{row.desc}</div>)}
-                        {bill.details && <div style={{marginTop: '16px', whiteSpace: 'pre-wrap'}}>{bill.details}</div>}
-                      </div>
-                    </td>
-                    <td style={{ padding: '8px 4px', textAlign: 'center' }}>
-                      {bill.items.map(row => <div key={row.id}>{row.qty}</div>)}
-                    </td>
-                    <td style={{ padding: '8px 4px', textAlign: 'center' }}>
-                      {/* Rate left blank intentionally */}
-                    </td>
-                    <td style={{ padding: '8px 4px', textAlign: 'center' }}>
-                      {bill.items.map(row => <div key={row.id}>{row.amount}</div>)}
-                    </td>
-                  </tr>
-                  <tr><td colSpan={3} className="total-label">Total</td><td className="total-cell"></td><td className="amount-cell">{bill.total}</td></tr>
-                  <tr><td colSpan={3} className="total-label">Add.</td><td className="total-cell"></td><td className="amount-cell">{bill.advance}</td></tr>
-                  <tr><td colSpan={3} className="total-label">Bal.</td><td className="total-cell"></td><td className="amount-cell">{bill.balance}</td></tr>
-                </tbody>
-              </table>
-              <footer className="footer">
-                <div className="terms">
-                  <span style={{ whiteSpace: 'pre-wrap', display: 'block' }}>
-                    {`1) Advance payment is non-refundable”.\n2) No refund or return after Printing.”\n3) Photo will be saved for 30 days only.”\nWe cover all types of photography and videography events”`}
-                  </span>
-                </div>
-                <div className="signature">
-                  <span>Signature<br/><br/>________________</span>
-                </div>
-              </footer>
-            </div>
-          </main>
-        </div>
-      </div>
-    </div>
-  );
+				<div style={{ marginLeft: "auto", display: "flex", gap: "8px", alignItems: "center" }}>
+					<button className="bill-wa-btn" onClick={handleSendWhatsApp}>
+						💬 Send WA
+					</button>
+					<button onClick={() => window.print()}>🖨 Print</button>
+					
+					{/* 2 Download Options: JPG & PDF */}
+					<button
+						style={{ background: "#2563eb", color: "#fff", fontWeight: "bold" }}
+						disabled={downloading}
+						onClick={handleDownloadJPG}
+					>
+						{downloading ? "⏳..." : "🖼️ Download JPG"}
+					</button>
+					<button className="bill-dl-btn" disabled={downloading} onClick={handleDownloadPDF}>
+						{downloading ? "⏳..." : "📄 Download PDF"}
+					</button>
+				</div>
+			</div>
+
+			{/* CANVAS */}
+			<div className="bill-canvas">
+				<div
+					ref={docRef}
+					className="bill-container"
+					style={{
+						transform: `scale(${zoom / 100})`,
+						transformOrigin: "top center",
+						transition: "transform .2s",
+					}}
+				>
+					<main className="bill">
+						{bill.showWatermark && (
+							<div className="watermark" aria-hidden="true">
+								<span style={{ whiteSpace: "pre-wrap" }}>{bill.watermarkText}</span>
+							</div>
+						)}
+						<div className="content">
+							<h1 className="brand">
+								<span>Shyam Graphic Designer</span>
+							</h1>
+							<div className="header-rule"></div>
+							<div className="address">
+								<span>
+									PLAT NO. 1, SHOP NO. 3 BALAJI NAGAR, NEAR BY- BHAWANI HOSPITEL OPPOSITE
+									<br />
+									PUNAPU ROAD, PARDI NAGPUR. 35 &nbsp;&nbsp;&nbsp; MO. 7775854937, 9404291477
+								</span>
+							</div>
+							<div className="meta">
+								<span style={{ display: "inline-flex", alignItems: "baseline", gap: "6px" }}>
+									<span>No.</span>
+									<span
+										style={{
+											display: "inline-block",
+											borderBottom: "2px solid #dc2626",
+											padding: "0 10px 2px",
+											color: "#dc2626",
+											fontWeight: "bold",
+											fontSize: "20px",
+											minWidth: "60px",
+											textAlign: "center",
+										}}
+									>
+										{bill.billNo}
+									</span>
+								</span>
+								<span style={{ display: "inline-flex", alignItems: "baseline", gap: "6px" }}>
+									<span>Date :-</span>
+									<span
+										style={{
+											display: "inline-block",
+											borderBottom: "2px solid #111",
+											padding: "0 10px 2px",
+											fontWeight: "bold",
+											minWidth: "110px",
+											textAlign: "center",
+										}}
+									>
+										{bill.date}
+									</span>
+								</span>
+							</div>
+							<section className="fields" aria-label="Customer details">
+								<div className="field">
+									<span className="label">Name :-</span>
+									<span className="line" style={{ padding: "0 8px" }}>
+										{bill.customerName}
+									</span>
+									<span className="label">Mo.</span>
+									<span className="line short" style={{ padding: "0 8px" }}>
+										{bill.customerMobile}
+									</span>
+								</div>
+								<div className="field">
+									<span className="label">Address :-</span>
+									<span className="line" style={{ padding: "0 8px" }}>
+										{bill.customerAddress}
+									</span>
+								</div>
+							</section>
+							<table className="bill-table" aria-label="Bill items">
+								<thead>
+									<tr>
+										<th>Sr</th>
+										<th>Description</th>
+										<th>Qty</th>
+										<th>Rate</th>
+										<th>Amount</th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr>
+										<td style={{ padding: "8px 4px", textAlign: "center" }}>
+											{bill.items.map((row) => (
+												<div key={row.id}>{row.sr}</div>
+											))}
+										</td>
+										<td className="notes">
+											<div style={{ padding: "8px 4px" }}>
+												{bill.items.map((row) => (
+													<div key={row.id}>{row.desc}</div>
+												))}
+												{bill.details && (
+													<div
+														style={{
+															marginTop: "16px",
+															whiteSpace: "pre-wrap",
+														}}
+													>
+														{bill.details}
+													</div>
+												)}
+											</div>
+										</td>
+										<td style={{ padding: "8px 4px", textAlign: "center" }}>
+											{bill.items.map((row) => (
+												<div key={row.id}>{row.qty}</div>
+											))}
+										</td>
+										<td style={{ padding: "8px 4px", textAlign: "center" }}>
+											{/* Rate left blank intentionally */}
+										</td>
+										<td style={{ padding: "8px 4px", textAlign: "center" }}>
+											{bill.items.map((row) => (
+												<div key={row.id}>{row.amount}</div>
+											))}
+										</td>
+									</tr>
+									<tr>
+										<td colSpan={3} className="total-label">
+											Total
+										</td>
+										<td className="total-cell"></td>
+										<td className="amount-cell">{bill.total}</td>
+									</tr>
+									<tr>
+										<td colSpan={3} className="total-label">
+											Add.
+										</td>
+										<td className="total-cell"></td>
+										<td className="amount-cell">{bill.advance}</td>
+									</tr>
+									<tr>
+										<td colSpan={3} className="total-label">
+											Bal.
+										</td>
+										<td className="total-cell"></td>
+										<td className="amount-cell">{bill.balance}</td>
+									</tr>
+								</tbody>
+							</table>
+							<footer className="footer">
+								<div className="terms">
+									<span style={{ whiteSpace: "pre-wrap", display: "block" }}>
+										{`1) Advance payment is non-refundable”.\n2) No refund or return after Printing.”\n3) Photo will be saved for 30 days only.”\nWe cover all types of photography and videography events”`}
+									</span>
+								</div>
+								<div className="signature">
+									<span>
+										Signature
+										<br />
+										<br />
+										________________
+									</span>
+								</div>
+							</footer>
+						</div>
+					</main>
+				</div>
+			</div>
+		</div>
+	);
 }

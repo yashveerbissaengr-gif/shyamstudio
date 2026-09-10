@@ -1,0 +1,105 @@
+[NewIntroducing React Bench, see how different models perform on React code](https://reactbench.com)
+[Pricing](https://react.doctor/pricing)
+[Docs](https://react.doctor/docs)
+[Blog](https://react.doctor/blog)
+[Changelog](https://react.doctor/docs/community/changelog)
+[What Is React Doctor?](https://react.doctor/docs/overview/what-is-react-doctor)
+[Quickstart](https://react.doctor/docs/overview/quickstart)
+[React Maintainability](https://react.doctor/docs/overview/react-maintainability)
+[Install for Coding Agents](https://react.doctor/docs/getting-started/install-for-coding-agents)
+[How to Fix Issues](https://react.doctor/docs/getting-started/how-to-fix-issues)
+[GitHub Actions Setup](https://react.doctor/docs/ci-and-prs/github-actions-setup)
+[Updating CI](https://react.doctor/docs/ci-and-prs/updating-ci)
+[Other CI Providers](https://react.doctor/docs/ci-and-prs/other-ci-providers)
+[Migrating to CI v2](https://react.doctor/docs/ci-and-prs/migrating-to-ci-v2)
+[Config Files](https://react.doctor/docs/configuration/config-files)
+[ESLint & oxlint Plugins](https://react.doctor/docs/configuration/eslint-and-oxlint-plugins)
+[Add Custom Rules](https://react.doctor/docs/configuration/add-custom-rules)
+[CLI Reference](https://react.doctor/docs/reference/cli-reference)
+[GitHub Action Reference](https://react.doctor/docs/reference/github-action-reference)
+[Node.js API](https://react.doctor/docs/reference/node-api)
+[Changelog](https://react.doctor/docs/community/changelog)
+[Modified MIT License](https://react.doctor/docs/legal/license)
+[Terms of Service](https://react.doctor/docs/legal/terms)
+[Privacy Policy](https://react.doctor/docs/legal/privacy)
+[Data Use](https://react.doctor/docs/legal/data-use)
+[Security](https://react.doctor/docs/legal/security)
+[Support](https://react.doctor/docs/company/support)
+[Rules reference](https://react.doctor/docs/rules)
+1. [Rules reference](https://react.doctor/docs/rules)
+2. /
+3. [Architecture](https://react.doctor/docs/rules#architecture)
+[Rules reference](https://react.doctor/docs/rules)
+[Architecture](https://react.doctor/docs/rules#architecture)
+
+# react-doctor/prefer-module-scope-static-value
+
+```
+react-doctor/prefer-module-scope-static-value
+```
+
+Hoist the static array/object literal to module scope above the component: const FILTER_OPTIONS = ["all", "active", "done"]; function App() { ... }
+- [Validation prompt](https://react.doctor/docs/rules/react-doctor/prefer-module-scope-static-value#validation-prompt)
+- [Evidence boundary](https://react.doctor/docs/rules/react-doctor/prefer-module-scope-static-value#evidence-boundary)
+- [Fix prompt](https://react.doctor/docs/rules/react-doctor/prefer-module-scope-static-value#fix-prompt)
+- [Repository-wide copy prompt](https://react.doctor/docs/rules/react-doctor/prefer-module-scope-static-value#repository-wide-prompt)
+[Validation prompt](https://react.doctor/docs/rules/react-doctor/prefer-module-scope-static-value#validation-prompt)
+[Evidence boundary](https://react.doctor/docs/rules/react-doctor/prefer-module-scope-static-value#evidence-boundary)
+[Fix prompt](https://react.doctor/docs/rules/react-doctor/prefer-module-scope-static-value#fix-prompt)
+[Repository-wide copy prompt](https://react.doctor/docs/rules/react-doctor/prefer-module-scope-static-value#repository-wide-prompt)
+
+## Validation prompt
+Confirm the detector match and collect the required evidence before deciding whether an edit is warranted.
+Fires on a VariableDeclarator with an Identifier id whose initializer (after stripParenExpression) is an ArrayExpression or ObjectExpression literal, declared directly in a component/hook body scope (enclosingComponentOrHookScope, which walks to the nearest enclosing function and stops there), where hasComponentLocalReferences finds NO reference resolving to a symbol inside the component bodyScope, and isBindingMutatedAfterInit finds no mutation. Module-level imports/globals captured in the value still count as hoistable (RANKED_ROLES = [ROLES.admin, ROLES.editor] fires). It deliberately fires inside memo()/forwardRef()-wrapped components and even when the binding is only READ via .includes/.find/.map/property access/index reads (read-only methods are excluded from MUTATING_RECEIVER_METHOD_NAMES). Does NOT fire on: primitives (const MAX = 100); empty accumulator literals that get mutated (const parts = []; parts.push(...)); values inside useMemo/useCallback callbacks or event handlers (the nearest enclosing function is the callback, not the component); values already at module scope or in lowercase/non-component helpers (makeApi); arrays/objects containing inline function expressions, since hasComponentLocalReferences flags any nested Arrow/FunctionExpression as a local capture (const handlers = [() => ..., () => ...]); bindings the detector already sees as mutated after init via isMutationContext: rebinding (OPTS = ...), property reassignment (CONFIG.mode = ...), index assignment (OPTS[0] = ...), delete CONFIG.x, or a mutating method call (OPTS.push(...), map.set(...)); and PascalCase non-hook factory functions that return a plain object literal (e.g. a ProseMirror plugin factory like AIHandlePlugin), which enclosingComponentOrHookScope drops via doesFunctionReturnsObjectLiteral because they are called once and never re-render. The only genuine residual false positives a reviewer should suppress: the binding IS mutated but through a path isMutationContext cannot resolve: an alias (const a = OPTS; a.push(x)) or by being passed into a function that mutates it in place: so hoisting would create a shared mutable module singleton; or the literal actually closes over local state/props/inner-function bindings that scope analysis failed to resolve, making the hoist break semantics.
+
+## Evidence boundary
+The diagnostic proves only that the detector’s modeled source pattern matched. It does not prove runtime impact, product intent, rendered failure, or that one remediation is correct.
+Establish the environment, repository policy, exceptions, and required rendered or runtime evidence before deciding the occurrence.
+Record one outcome:
+- Confirmed failure: The required evidence establishes the violation.
+- Rejected: A documented exception or false-positive predicate applies.
+- Needs evidence: Named evidence can still be collected.
+- Unavailable: Required evidence cannot be collected in this run.
+- Waived with evidence: An authorized, scoped exception applies to an established failure.
+- Observation: The review records an optional tradeoff without claiming a defect.
+A waiver records its scope, authority, evidence, and review condition. It is not a pass or false positive.
+Default severity is registry metadata. Use the occurrence’s JSON severity after repository configuration when ordering real findings.
+
+## Fix prompt
+Apply this candidate correction only after the required evidence confirms the risk.
+Move the literal out of the component to module scope (above the component, after imports) since it references no local state: change function App() { const FILTER_OPTIONS = ["all","active","done"]; ... } to const FILTER_OPTIONS = ["all","active","done"]; function App() { ... } so the array/object is allocated once and memoised consumers receive a stable reference across renders. Only hoist if the binding is genuinely read-only after init across every path including aliases and functions it is passed to; if it is mutated in place, leave it in the component or refactor the mutation away (e.g. build the value from props/state during render) before hoisting.
+
+## Repository-wide copy prompt
+
+Use this repository-wide prompt only after validating each occurrence. For one occurrence, use the guidance above.
+Fix every confirmed react-doctor/prefer-module-scope-static-value diagnostic in the current repository.
+
+```
+react-doctor/prefer-module-scope-static-value
+```
+
+
+#### Required change:
+- Move the literal out of the component to module scope (above the component, after imports) since it references no local state: change function App() { const FILTER_OPTIONS = ["all","active","done"]; ... } to const FILTER_OPTIONS = ["all","active","done"]; function App() { ... } so the array/object is allocated once and memoised consumers receive a stable reference across renders. Only hoist if the binding is genuinely read-only after init across every path including aliases and functions it is passed to; if it is mutated in place, leave it in the component or refactor the mutation away (e.g. build the value from props/state during render) before hoisting.
+
+#### Validation before editing:
+Fires on a VariableDeclarator with an Identifier id whose initializer (after stripParenExpression) is an ArrayExpression or ObjectExpression literal, declared directly in a component/hook body scope (enclosingComponentOrHookScope, which walks to the nearest enclosing function and stops there), where hasComponentLocalReferences finds NO reference resolving to a symbol inside the component bodyScope, and isBindingMutatedAfterInit finds no mutation. Module-level imports/globals captured in the value still count as hoistable (RANKED_ROLES = [ROLES.admin, ROLES.editor] fires). It deliberately fires inside memo()/forwardRef()-wrapped components and even when the binding is only READ via .includes/.find/.map/property access/index reads (read-only methods are excluded from MUTATING_RECEIVER_METHOD_NAMES). Does NOT fire on: primitives (const MAX = 100); empty accumulator literals that get mutated (const parts = []; parts.push(...)); values inside useMemo/useCallback callbacks or event handlers (the nearest enclosing function is the callback, not the component); values already at module scope or in lowercase/non-component helpers (makeApi); arrays/objects containing inline function expressions, since hasComponentLocalReferences flags any nested Arrow/FunctionExpression as a local capture (const handlers = [() => ..., () => ...]); bindings the detector already sees as mutated after init via isMutationContext: rebinding (OPTS = ...), property reassignment (CONFIG.mode = ...), index assignment (OPTS[0] = ...), delete CONFIG.x, or a mutating method call (OPTS.push(...), map.set(...)); and PascalCase non-hook factory functions that return a plain object literal (e.g. a ProseMirror plugin factory like AIHandlePlugin), which enclosingComponentOrHookScope drops via doesFunctionReturnsObjectLiteral because they are called once and never re-render. The only genuine residual false positives a reviewer should suppress: the binding IS mutated but through a path isMutationContext cannot resolve: an alias (const a = OPTS; a.push(x)) or by being passed into a function that mutates it in place: so hoisting would create a shared mutable module singleton; or the literal actually closes over local state/props/inner-function bindings that scope analysis failed to resolve, making the hoist break semantics.
+
+#### Constraints:
+- Make the smallest change that fixes the root cause.
+- Preserve behavior and interfaces unrelated to this diagnostic.
+- Reuse existing project components, utilities, and conventions.
+- Adapt identifiers and framework details instead of copying blindly.
+- Do not disable the rule or suppress matching code.
+- Do not edit code when this condition applies: react-compiler.
+
+#### Assessment:
+- Record detector evidence, applicability facts, assumptions, missing evidence, and the rule class for this occurrence.
+- Return one outcome: Confirmed failure, Rejected, Needs evidence, Unavailable, Waived with evidence, or Observation.
+- A waiver records the established failure, scope, authority, evidence, and review or expiry condition. It is not a pass or false positive.
+
+#### Verification:
+- Run focused tests for the changed behavior.
+- Run React Doctor and confirm this diagnostic no longer appears from changed code.
+- Run an unfiltered scan of the affected scope before claiming no cross-category regression.
+- Report the files changed and any checks you could not run.

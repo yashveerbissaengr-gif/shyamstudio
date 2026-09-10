@@ -1,0 +1,25 @@
+Rule: react-doctor/exhaustive-deps
+Severity: warning
+Category: Bugs
+Count: 1
+
+`useEffect` doesn't need `quotes.length` in its dependency array — it's defined outside the component and never changes between renders.
+
+Suggestion: Don't blindly add missing dependencies. Read the hook callback first.
+
+Bad:
+useEffect(() => {
+  setCount(count + 1);
+}, [count]);
+
+Better:
+useEffect(() => {
+  setCount((currentCount) => currentCount + 1);
+}, []);
+
+If the missing value is recreated every render, move it inside the hook or stabilize it before adding it to deps.
+
+Curl with no cache & follow the canonical fix and false positive check recipe before fixing: https://react.doctor/docs/rules/react-doctor/exhaustive-deps
+
+Files:
+  src/pages/Home.tsx:80

@@ -1,0 +1,23 @@
+Rule: react-doctor/no-placeholder-only-field
+Severity: warning
+Category: Accessibility
+Count: 11
+
+Placeholder text disappears during entry and cannot replace a persistent field label. Add a visible associated label.
+
+Suggestion: Add a visible label associated with the field. Keep placeholder text for examples or formatting hints.
+
+Curl with no cache & follow the canonical fix and false positive check recipe before fixing: https://react.doctor/docs/rules/react-doctor/no-placeholder-only-field
+
+Files:
+  src/pages/BillGenerator.tsx:206
+  src/pages/BillGenerator.tsx:210
+  src/pages/BillGenerator.tsx:216
+  src/pages/BillGenerator.tsx:265
+  src/pages/BillGenerator.tsx:277
+  src/pages/BillGenerator.tsx:287
+  src/pages/Dashboard.tsx:109
+  src/pages/Home.tsx:553
+  src/pages/Home.tsx:557
+  src/pages/Home.tsx:562
+  src/pages/Home.tsx:578

@@ -1,0 +1,17 @@
+Rule: react-doctor/no-loading-flag-reset-outside-finally
+Severity: warning
+Category: Bugs
+Count: 5
+
+This resets a loading/busy flag only on the success path: if the awaited call rejects the reset never runs and the flag stays stuck truthy (a spinner that never stops, a button disabled forever). Move the reset into a `finally` block, or mirror it on every catch, so it clears on rejection too.
+
+Suggestion: A trailing `setLoading(false)` after an `await` never runs if the awaited call rejects, so the flag stays stuck truthy; reset it in a `finally` block (or mirror the reset on every catch) so it clears on both paths.
+
+Curl with no cache & follow the canonical fix and false positive check recipe before fixing: https://react.doctor/docs/rules/react-doctor/no-loading-flag-reset-outside-finally
+
+Files:
+  src/pages/BillGenerator.tsx:112
+  src/pages/BillGenerator.tsx:161
+  src/pages/BillViewer.tsx:34
+  src/pages/InvoiceGenerator.tsx:124
+  src/pages/InvoiceGenerator.tsx:175

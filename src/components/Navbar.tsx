@@ -1,29 +1,29 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
+import { Menu, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+
+const navLinks = [
+	{ label: "Home", href: "#home" },
+	{ label: "About", href: "#about" },
+	{ label: "Services", href: "#services" },
+	{ label: "Portfolio", href: "#portfolio" },
+	{ label: "Packages", href: "#packages" },
+	{ label: "Contact", href: "#contact" },
+];
 
 export default function Navbar() {
-  const [scrolled, setScrolled] = useState(false);
-  const [open, setOpen] = useState(false);
+	const [scrolled, setScrolled] = useState(false);
+	const [open, setOpen] = useState(false);
 
-  useEffect(() => {
-    const fn = () => setScrolled(window.scrollY > 60);
-    window.addEventListener('scroll', fn, { passive: true });
-    return () => window.removeEventListener('scroll', fn);
-  }, []);
+	useEffect(() => {
+		const fn = () => setScrolled(window.scrollY > 60);
+		window.addEventListener("scroll", fn, { passive: true });
+		return () => window.removeEventListener("scroll", fn);
+	}, []);
 
-  const navLinks = [
-    { label: 'Home', href: '#home' },
-    { label: 'About', href: '#about' },
-    { label: 'Services', href: '#services' },
-    { label: 'Portfolio', href: '#portfolio' },
-    { label: 'Packages', href: '#packages' },
-    { label: 'Contact', href: '#contact' },
-  ];
-
-  return (
-    <>
-      <style>{`
+	return (
+		<>
+			<style>{`
         .nav-root {
           position: fixed; top: 0; left: 0; right: 0; z-index: 100;
           transition: background 0.35s, padding 0.35s, backdrop-filter 0.35s, border-color 0.35s;
@@ -83,32 +83,52 @@ export default function Navbar() {
         .mob-link:hover { color: #f47a21; }
       `}</style>
 
-      <nav className={`nav-root${scrolled ? ' scrolled' : ''}`}>
-        <div className="nav-inner">
-          <Link to="/" className="nav-logo">
-            <span className="nav-logo-main">SHYAM</span>
-            <span className="nav-logo-sub">Studio · Nagpur</span>
-          </Link>
+			<nav className={`nav-root${scrolled ? " scrolled" : ""}`}>
+				<div className="nav-inner">
+					<Link to="/" className="nav-logo">
+						<span className="nav-logo-main">SHYAM</span>
+						<span className="nav-logo-sub">Studio · Nagpur</span>
+					</Link>
 
-          <div className="nav-links">
-            {navLinks.map(l => (
-              <a key={l.label} href={l.href} className="nav-link">{l.label}</a>
-            ))}
-          </div>
+					<div className="nav-links">
+						{navLinks.map((l) =>
+							l.href.startsWith("#") ? (
+								<a key={l.label} href={l.href} className="nav-link">
+									{l.label}
+								</a>
+							) : (
+								<Link key={l.label} to={l.href} className="nav-link">
+									{l.label}
+								</Link>
+							),
+						)}
+					</div>
 
-          <button className="nav-hamburger" onClick={() => setOpen(o => !o)}>
-            {open ? <X size={22} /> : <Menu size={22} />}
-          </button>
-        </div>
-      </nav>
+					<button
+						className="nav-hamburger"
+						onClick={() => setOpen((o) => !o)}
+						aria-label="Toggle navigation menu"
+					>
+						{open ? <X size={22} /> : <Menu size={22} />}
+					</button>
+				</div>
+			</nav>
 
-      {open && (
-        <div className="mob-menu">
-          {navLinks.map(l => (
-            <a key={l.label} href={l.href} className="mob-link" onClick={() => setOpen(false)}>{l.label}</a>
-          ))}
-        </div>
-      )}
-    </>
-  );
+			{open && (
+				<div className="mob-menu">
+					{navLinks.map((l) =>
+						l.href.startsWith("#") ? (
+							<a key={l.label} href={l.href} className="mob-link" onClick={() => setOpen(false)}>
+								{l.label}
+							</a>
+						) : (
+							<Link key={l.label} to={l.href} className="mob-link" onClick={() => setOpen(false)}>
+								{l.label}
+							</Link>
+						),
+					)}
+				</div>
+			)}
+		</>
+	);
 }

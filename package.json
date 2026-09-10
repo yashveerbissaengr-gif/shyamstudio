@@ -1,41 +1,42 @@
 {
-  "name": "temp_app",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "deploy": "echo 'Deploy successful'",
-    "lint": "oxlint",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "@types/html2pdf.js": "^0.10.0",
-    "framer-motion": "^13.2.0",
-    "html-to-image": "^1.11.13",
-    "html2pdf.js": "^0.14.0",
-    "jspdf": "^4.2.1",
-    "lucide-react": "^1.41.0",
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8",
-    "react-router-dom": "^7.18.3",
-    "react-to-print": "^3.3.0"
-  },
-  "devDependencies": {
-    "@cloudflare/workers-types": "^5.20260904.1",
-    "@tailwindcss/vite": "^4.3.3",
-    "@types/node": "^24.13.3",
-    "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.4",
-    "@vitejs/plugin-react": "^6.1.0",
-    "autoprefixer": "^10.5.4",
-    "hono": "^4.13.5",
-    "oxlint": "^1.79.0",
-    "postcss": "^8.5.28",
-    "tailwindcss": "^4.3.3",
-    "typescript": "~6.0.2",
-    "vite": "^8.2.2",
-    "wrangler": "^4.129.0"
-  }
+	"name": "temp_app",
+	"private": true,
+	"version": "0.0.0",
+	"type": "module",
+	"scripts": {
+		"dev": "vite",
+		"build": "tsc -b && vite build",
+		"deploy": "echo 'Deploy successful'",
+		"lint": "oxlint",
+		"preview": "vite preview"
+	},
+	"dependencies": {
+		"@types/html2pdf.js": "^0.10.0",
+		"framer-motion": "^13.2.0",
+		"html-to-image": "^1.11.13",
+		"html2pdf.js": "^0.14.0",
+		"jspdf": "^4.2.1",
+		"lucide-react": "^1.41.0",
+		"react": "^19.2.8",
+		"react-dom": "^19.2.8",
+		"react-router-dom": "^7.18.3",
+		"react-to-print": "^3.3.0",
+		"uuid": "^14.0.2"
+	},
+	"devDependencies": {
+		"@cloudflare/workers-types": "^5.20260904.1",
+		"@tailwindcss/vite": "^4.3.3",
+		"@types/node": "^24.13.3",
+		"@types/react": "^19.2.18",
+		"@types/react-dom": "^19.2.4",
+		"@vitejs/plugin-react": "^6.1.0",
+		"autoprefixer": "^10.5.4",
+		"hono": "^4.13.5",
+		"oxlint": "^1.79.0",
+		"postcss": "^8.5.28",
+		"tailwindcss": "^4.3.3",
+		"typescript": "~6.0.2",
+		"vite": "^8.2.2",
+		"wrangler": "^4.129.0"
+	}
 }

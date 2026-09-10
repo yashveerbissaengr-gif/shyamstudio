@@ -1,0 +1,18 @@
+Rule: react-doctor/no-transition-all
+Severity: warning
+Category: Performance
+Count: 4
+
+Your users see janky animation because `transition-all` animates every property that changes, including expensive layout ones and instant ones like focus rings. Name the properties: `transition-colors`, `transition-opacity`, or `transition-transform`.
+
+This can stutter because transition: "all" animates every property, even slow layout ones, so list only the properties you actually change
+
+Suggestion: List the specific properties: `transition: "opacity 200ms, transform 200ms"`. In Tailwind, use `transition-colors`, `transition-opacity`, or `transition-transform`
+
+Curl with no cache & follow the canonical fix and false positive check recipe before fixing: https://react.doctor/docs/rules/react-doctor/no-transition-all
+
+Files:
+  src/pages/Dashboard.tsx:55
+  src/pages/Dashboard.tsx:66
+  src/pages/Home.tsx:337
+  src/pages/Home.tsx:468

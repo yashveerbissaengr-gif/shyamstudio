@@ -1,0 +1,121 @@
+.inv-toolbar {
+  display: flex; gap: 6px; padding: 10px 16px; background: #fff; border-bottom: 1px solid #e2e8f0;
+  align-items: center; position: sticky; top: 0; z-index: 10;
+  overflow-x: auto; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+.inv-toolbar button, .inv-toolbar select {
+  padding: 6px 12px; font-size: 10pt; border: 1px solid #cbd5e1; background: #fff;
+  border-radius: 4px; cursor: pointer; color: #334155; font-family: inherit; font-weight: 500;
+  transition: all 0.15s ease;
+}
+.inv-toolbar button:hover, .inv-toolbar select:hover { background: #f8fafc; border-color: #94a3b8; }
+.inv-toolbar .sep { width: 1px; height: 24px; background: #cbd5e1; margin: 0 4px; }
+.zoom-ctl { display: flex; align-items: center; font-size: 10pt; background: #f1f5f9; border-radius: 4px; padding: 2px; }
+.zoom-ctl button { border: none; background: transparent; padding: 4px 8px; font-weight: bold; }
+.zoom-ctl button:hover { background: #e2e8f0; }
+
+.bill-wa-btn { background: #10b981 !important; color: #fff !important; border-radius: 4px !important; padding: 6px 14px !important; font-weight: 700 !important; border-color: transparent !important; }
+.bill-wa-btn:hover { background: #059669 !important; }
+.bill-save-btn { background: #0f766e !important; color: #fff !important; border-radius: 4px !important; padding: 6px 14px !important; font-weight: 700 !important; border-color: transparent !important; }
+.bill-save-btn:hover { background: #115e59 !important; }
+.bill-print-btn { background: #3f2c25 !important; color: #fff !important; border-radius: 4px !important; padding: 6px 14px !important; font-weight: 700 !important; border-color: transparent !important; }
+.bill-print-btn:hover { background: #2c1f19 !important; }
+
+/* ── SCROLL AREA ───────────────────────────────────────────────── */
+.inv-canvas { flex: 1; overflow-y: auto; padding: 40px 20px; }
+
+/* ── A4 PAGE ───────────────────────────────────────────────────── */
+.a4-page {
+  width: 210mm; min-height: 297mm; background: #fff; margin: 0 auto 32px;
+  box-shadow: 0 4px 24px rgba(0,0,0,.18); padding: 14mm 16mm;
+  font-family: 'Times New Roman', Times, serif; font-size: 11pt; color: #111;
+  position: relative; box-sizing: border-box; page-break-after: always;
+}
+.a4-page:last-child { page-break-after: auto; }
+
+/* ── CONTENT EDITABLE FIELDS ───────────────────────────────────── */
+[contenteditable] {
+  outline: none; cursor: text; display: inline;
+  border-radius: 2px; transition: background .15s;
+}
+[contenteditable]:hover { background: rgba(249,115,22,.07); }
+[contenteditable]:focus { background: rgba(249,115,22,.12); outline: none; }
+[contenteditable][data-placeholder]:empty:before {
+  content: attr(data-placeholder); color: #aaa; font-style: italic; pointer-events: none;
+}
+.editable-line { display: inline-block; min-width: 100px; min-height: 1.2em; border-bottom: 1.5px solid #163a4a; outline: none; vertical-align: bottom; }
+
+/* ── INVOICE PAGE 1 ────────────────────────────────────────────── */
+.inv-header { text-align: center; border-bottom: 3px double #163a4a; padding-bottom: 8px; margin-bottom: 10px; }
+.inv-studio-name { font-size: 22pt; font-weight: 700; color: #163a4a; letter-spacing: .04em; }
+.inv-studio-sub { font-size: 10pt; color: #2c7a7b; margin-top: 2px; }
+.inv-studio-addr { font-size: 9pt; color: #52636d; margin-top: 3px; }
+.inv-booking-label { font-size: 13pt; font-weight: 700; color: #2c7a7b; letter-spacing: .08em; margin: 10px 0 8px; text-align: center; text-transform: uppercase; }
+.inv-meta-row { display: flex; justify-content: space-between; margin-bottom: 6px; }
+.inv-meta-cell { font-size: 10pt; }
+.inv-meta-cell b { color: #163a4a; }
+
+.inv-section-head { font-size: 11pt; font-weight: 700; color: #163a4a; letter-spacing: .04em; margin: 14px 0 6px; text-transform: uppercase; border-bottom: 1.5px solid #d9e2e8; padding-bottom: 3px; }
+
+/* Customer info table */
+.info-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+.info-table td { padding: 4px 6px; font-size: 10pt; vertical-align: top; border: none; }
+.info-table td:first-child { width: 35%; color: #52636d; font-weight: 600; }
+.info-table td:last-child { color: #111; border-bottom: 1px dotted #d9e2e8; }
+
+/* Schedule table */
+.doc-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+.doc-table th { background: #163a4a; color: #fff; font-size: 9.5pt; padding: 6px 8px; text-align: center; font-weight: 600; border: 1px solid #163a4a; }
+.doc-table td { border: 1px solid #d9e2e8; padding: 5px 8px; font-size: 9.5pt; vertical-align: middle; background: #fff; color: #111; }
+.doc-table td[contenteditable]:focus { background: rgba(249,115,22,.1); }
+
+/* Items table */
+.items-table { width: 100%; border-collapse: collapse; margin-bottom: 0; }
+.items-table th { background: #2c7a7b; color: #fff; font-size: 9.5pt; padding: 6px 8px; text-align: center; border: 1px solid #2c7a7b; }
+.items-table td { border: 1px solid #d9e2e8; padding: 6px 8px; font-size: 9.5pt; vertical-align: top; color: #111; }
+.items-table .desc-cell { width: 55%; }
+.items-table .num-cell { width: 12%; text-align: center; }
+.items-table .money-cell { width: 16%; text-align: right; }
+.items-table .subtotal-row td { font-weight: 700; background: #eef6f6; color: #163a4a; }
+
+.doc-add-row { font-size: 9pt; color: #2c7a7b; background: transparent; border: 1px dashed #2c7a7b; padding: 3px 10px; border-radius: 4px; cursor: pointer; margin-top: 4px; display: inline-block; }
+.doc-add-row:hover { background: #eef6f6; }
+.doc-del-row { font-size: 8pt; color: #e53e3e; background: transparent; border: none; cursor: pointer; padding: 0 4px; opacity: .6; }
+.doc-del-row:hover { opacity: 1; }
+
+/* Terms / bank */
+.terms-box { border: 1px solid #d9e2e8; background: #eef6f6; padding: 8px 12px; margin: 10px 0; }
+.terms-box p[contenteditable] { display: block; width: 100%; }
+.bank-table { width: 100%; border-collapse: collapse; }
+.bank-table td { padding: 3px 6px; font-size: 10pt; border: none; }
+.bank-table td:first-child { color: #52636d; font-weight: 600; width: 35%; }
+
+/* NOTE */
+.note-box { border-left: 3px solid #2c7a7b; padding: 4px 10px; margin: 8px 0; font-size: 9.5pt; color: #52636d; }
+
+/* ── PAGE 2 — MEDIA CONSENT ────────────────────────────────────── */
+.consent-title { font-size: 16pt; font-weight: 700; color: #163a4a; text-align: center; margin-bottom: 4px; text-transform: uppercase; letter-spacing: .06em; }
+.consent-para { font-size: 10pt; line-height: 1.65; color: #222; display: block; width: 100%; }
+.consent-info-table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+.consent-info-table td { padding: 5px 8px; font-size: 10pt; border-bottom: 1px dotted #d9e2e8; border-top: none; border-left: none; border-right: none; }
+.consent-info-table td:first-child { width: 35%; color: #52636d; font-weight: 600; }
+
+/* ── PAGE 3 — RECEIPT ──────────────────────────────────────────── */
+.receipt-title { font-size: 18pt; font-weight: 700; color: #163a4a; text-align: center; margin-bottom: 2px; text-transform: uppercase; letter-spacing: .06em; }
+.receipt-sub { font-size: 11pt; font-weight: 700; color: #2c7a7b; text-align: center; margin-bottom: 14px; text-transform: uppercase; letter-spacing: .08em; }
+.pay-method-row { display: flex; align-items: center; gap: 8px; margin: 5px 0; font-size: 10.5pt; }
+.pay-method-row input[type=checkbox] { width: 14px; height: 14px; cursor: pointer; accent-color: #163a4a; }
+.sig-line { border-bottom: 1.5px solid #111; width: 200px; display: inline-block; margin-top: 40px; }
+.thanks-msg { text-align: center; font-size: 12pt; font-weight: 700; color: #2c7a7b; margin-top: 24px; }
+
+/* ── PRINT ─────────────────────────────────────────────────────── */
+@media print {
+  .inv-toolbar, .doc-add-row, .doc-del-row, .no-print { display: none !important; }
+  .invoice-editor-root { height: auto; background: none; }
+  .inv-canvas { padding: 0; overflow: visible; }
+  .a4-page { box-shadow: none; margin: 0; padding: 0 !important; }
+  [contenteditable] { touch-action: manipulation; }
+  [contenteditable]:hover, [contenteditable]:focus { background: transparent; }
+  .doc-input::-webkit-calendar-picker-indicator { display: none !important; }
+  html, body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}

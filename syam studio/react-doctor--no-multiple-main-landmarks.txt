@@ -1,0 +1,13 @@
+Rule: react-doctor/no-multiple-main-landmarks
+Severity: warning
+Category: Accessibility
+Count: 1
+
+This static view contains more than one main landmark. Keep a single main region and use sectioning elements for subordinate content.
+
+Suggestion: Keep one visible main landmark per rendered view so assistive-technology users can jump to the primary content unambiguously.
+
+Curl with no cache & follow the canonical fix and false positive check recipe before fixing: https://react.doctor/docs/rules/react-doctor/no-multiple-main-landmarks
+
+Files:
+  src/components/templates/StudioInvoiceTemplate.tsx:122

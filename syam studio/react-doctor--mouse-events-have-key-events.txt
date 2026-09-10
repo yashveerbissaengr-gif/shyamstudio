@@ -1,0 +1,16 @@
+Rule: react-doctor/mouse-events-have-key-events
+Severity: warning
+Category: Accessibility
+Count: 2
+
+Keyboard users miss this `onMouseOver` because it only fires with a mouse, so add an `onFocus` handler too.
+
+Keyboard users miss this `onMouseOut` because it only fires with a mouse, so add an `onBlur` handler too.
+
+Suggestion: Pair mouse events with keyboard ones so keyboard users are not left out.
+
+Curl with no cache & follow the canonical fix and false positive check recipe before fixing: https://react.doctor/docs/rules/react-doctor/mouse-events-have-key-events
+
+Files:
+  src/pages/Home.tsx:338
+  src/pages/Home.tsx:338
