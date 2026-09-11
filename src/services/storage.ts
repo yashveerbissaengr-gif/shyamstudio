@@ -32,10 +32,43 @@ export const storage = {
 		return bills.find((b) => b.id === id);
 	},
 
+	canEditBill: (id: string): boolean => {
+		const bills = storage.getAllBills();
+		const target = bills.find((b) => b.id === id);
+		if (!target) return true; // new bill
+		
+		const targetMatch = target.billNo.match(/\d+/);
+		if (!targetMatch) return true;
+		const targetNum = parseInt(targetMatch[0], 10);
+
+		let max = 0;
+		for (const bill of bills) {
+			const match = bill.billNo.match(/\d+/);
+			if (match) {
+				const num = parseInt(match[0], 10);
+				if (num > max) max = num;
+			}
+		}
+		return targetNum >= max;
+	},
+
+	cancelBill: (id: string) => {
+		const bills = storage.getAllBills();
+		const index = bills.findIndex((b) => b.id === id);
+		if (index >= 0) {
+			bills[index].status = 'CANCELLED';
+			localStorage.setItem(STORAGE_KEY_BILLS, JSON.stringify(bills));
+		}
+	},
+
 	saveBill: (bill: BillData) => {
 		const bills = storage.getAllBills();
 		const index = bills.findIndex((b) => b.id === bill.id);
+		
 		if (index >= 0) {
+			if (!storage.canEditBill(bill.id)) {
+				throw new Error("LOCKED_INVOICE");
+			}
 			bills[index] = bill;
 		} else {
 			bills.push(bill);
@@ -84,10 +117,43 @@ export const storage = {
 		return invoices.find((inv) => inv.id === id);
 	},
 
+	canEditInvoice: (id: string): boolean => {
+		const invoices = storage.getAllInvoices();
+		const target = invoices.find((inv) => inv.id === id);
+		if (!target) return true;
+		
+		const targetMatch = target.invoiceNo.match(/\d+/);
+		if (!targetMatch) return true;
+		const targetNum = parseInt(targetMatch[0], 10);
+
+		let max = 0;
+		for (const inv of invoices) {
+			const match = inv.invoiceNo.match(/\d+/);
+			if (match) {
+				const num = parseInt(match[0], 10);
+				if (num > max) max = num;
+			}
+		}
+		return targetNum >= max;
+	},
+
+	cancelInvoice: (id: string) => {
+		const invoices = storage.getAllInvoices();
+		const index = invoices.findIndex((inv) => inv.id === id);
+		if (index >= 0) {
+			invoices[index].status = 'CANCELLED';
+			localStorage.setItem(STORAGE_KEY_INVOICES, JSON.stringify(invoices));
+		}
+	},
+
 	saveInvoice: (invoice: InvoiceData) => {
 		const invoices = storage.getAllInvoices();
 		const index = invoices.findIndex((inv) => inv.id === invoice.id);
+		
 		if (index >= 0) {
+			if (!storage.canEditInvoice(invoice.id)) {
+				throw new Error("LOCKED_INVOICE");
+			}
 			invoices[index] = invoice;
 		} else {
 			invoices.push(invoice);

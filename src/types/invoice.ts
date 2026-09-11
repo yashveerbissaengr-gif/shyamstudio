@@ -16,6 +16,7 @@ export interface InvoiceData {
 	schedule: ScheduleRow[];
 	payMethods: PaymentMethod[];
 	createdAt: number;
+	status?: 'ACTIVE' | 'CANCELLED';
 }
 
 export interface BillItem {
@@ -43,6 +44,7 @@ export interface BillData {
 	watermarkText: string;
 	showWatermark: boolean;
 	createdAt: number;
+	status?: 'ACTIVE' | 'CANCELLED';
 }
 
 export type Row = {

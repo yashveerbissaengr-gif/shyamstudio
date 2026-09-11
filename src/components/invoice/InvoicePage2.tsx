@@ -23,21 +23,15 @@ export function InvoicePage2({ readOnly }: { readOnly?: boolean }) {
 			<div style={{ position: "relative", zIndex: 1 }}>
 				<div className="inv-header">
 					<div className="inv-studio-name">
-						<span contentEditable suppressContentEditableWarning data-placeholder="Studio Name">
-							SHYAM STUDIO
-						</span>
+						<span>SHYAM STUDIO</span>
 					</div>
 					<div className="inv-studio-sub">
-						<span contentEditable suppressContentEditableWarning data-placeholder="tagline">
-							Photography · Videography · Events
-						</span>
+						<span>Photography · Videography · Events</span>
 					</div>
 				</div>
 
 				<div className="inv-section-head">
-					<span contentEditable suppressContentEditableWarning>
-						Terms & Conditions
-					</span>
+					<span>Terms & Conditions</span>
 				</div>
 				<div className="terms-body">
 					{[
@@ -65,7 +59,7 @@ export function InvoicePage2({ readOnly }: { readOnly?: boolean }) {
 					))}
 					<div className="term-item">
 						<span className="term-num">•</span>
-						<span contentEditable suppressContentEditableWarning className="term-text">
+						<span contentEditable={!readOnly} suppressContentEditableWarning className="term-text">
 							By confirming the booking and paying the advance, you acknowledge that you have read,
 							understood, and agreed to these terms.
 						</span>
@@ -83,17 +77,13 @@ export function InvoicePage2({ readOnly }: { readOnly?: boolean }) {
 					<div style={{ textAlign: "center" }}>
 						<div className="sig-line" />
 						<div style={{ fontSize: "9.5pt", color: "#52636d", marginTop: 4 }}>
-							<span contentEditable suppressContentEditableWarning>
-								Client Signature
-							</span>
+							<span>Client Signature</span>
 						</div>
 					</div>
 					<div style={{ textAlign: "center" }}>
 						<div className="sig-line" />
 						<div style={{ fontSize: "9.5pt", color: "#52636d", marginTop: 4 }}>
-							<span contentEditable suppressContentEditableWarning>
-								Authorized Signature
-							</span>
+							<span>Authorized Signature</span>
 						</div>
 						<div
 							style={{
@@ -103,9 +93,7 @@ export function InvoicePage2({ readOnly }: { readOnly?: boolean }) {
 								marginTop: 2,
 							}}
 						>
-							<span contentEditable suppressContentEditableWarning>
-								Shyam Studio
-							</span>
+							<span>Shyam Studio</span>
 						</div>
 					</div>
 				</div>

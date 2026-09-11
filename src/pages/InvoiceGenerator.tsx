@@ -73,7 +73,12 @@ export function InvoiceGenerator() {
 	const [downloading, setDownloading] = useState(false);
 	const docRef = useRef<HTMLDivElement>(null);
 
+	const isEditable = storage.canEditInvoice(id);
+	const status = existing?.status || 'ACTIVE';
+	const isCancelled = status === "CANCELLED";
+
 	const autoSave = () => {
+		if (!isEditable && !isCancelled) return;
 		storage.saveInvoice({
 			id,
 			invoiceNo,
@@ -83,7 +88,8 @@ export function InvoiceGenerator() {
 			items,
 			schedule,
 			payMethods,
-			createdAt: Date.now(),
+			createdAt: existing?.createdAt || Date.now(),
+			status: status
 		});
 	};
 
@@ -168,86 +174,50 @@ export function InvoiceGenerator() {
 		}
 	};
 
-	const handleSendWhatsApp = async () => {
+	const handleSendWhatsApp = async (type: 'booking' | 'completed' | 'collected') => {
 		autoSave();
-		const input = prompt(
-			"Please enter the customer's WhatsApp number (with country code, e.g., 919876543210):",
-		);
-		if (!input) return;
+		let targetMobile = customerMobile;
+		if (!targetMobile) {
+			const input = prompt("Please enter the customer's WhatsApp number:");
+			if (!input) return;
+			targetMobile = input;
+		}
+		
+		let cleanMobile = targetMobile.replace(/\D/g, "");
+		if (cleanMobile.length === 10) {
+			cleanMobile = "91" + cleanMobile; // Assume India if 10 digits
+		}
+		
+		const subTotal = items.reduce((acc, row) => acc + (parseFloat(row.amount) || 0), 0);
+		const totalStr = subTotal.toString();
+		const itemsList = items.map(item => `- ${item.desc} - ₹${item.amount || 0}`).join('\n');
+		
+		let message = "";
+		if (type === 'booking') {
+			message = `Dear Customer,\nShyam photo studio Thank's You\nFor Booking:\n${itemsList}\nYour Job ID is: ${invoiceNo}\nDATE : ${date}`;
+		} else if (type === 'completed') {
+			message = `Dear Customer,\nYour Job ID : ${invoiceNo}\nIs completed Please Collect Your Job\nBalance Amt : ${totalStr}\nFrom Shyam photo studio`;
+		} else if (type === 'collected') {
+			message = `Dear Customer,\nThank You For Successfully Collected Your Job\nJob Code : ${invoiceNo}\nFrom Shyam photo studio`;
+		}
 
-		const cleanMobile = input.replace(/\D/g, "");
-		const message = `Hello,\n\nHere is your invoice from Shyam Studio.\n\nThank you!`;
+		const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+		
+		// Open new tab immediately to prevent browser popup blockers on desktop
+		let waWindow: Window | null = null;
+		if (!isMobile) {
+			waWindow = window.open('about:blank', '_blank');
+		}
 
-		setDownloading(true);
-		try {
-			if (docRef.current) {
-				const pages = docRef.current.querySelectorAll(".a4-page");
-				const pdf = new jsPDF("p", "mm", "a4");
-
-				for (let i = 0; i < pages.length; i++) {
-					const pageEl = pages[i] as HTMLElement;
-					const noPrintEls = pageEl.querySelectorAll(".no-print");
-					noPrintEls.forEach((el) => ((el as HTMLElement).style.display = "none"));
-					const canvas = await html2canvas(pageEl, {
-						scale: 2,
-						useCORS: true,
-						logging: false,
-					});
-					noPrintEls.forEach((el) => ((el as HTMLElement).style.display = ""));
-					const imgData = canvas.toDataURL("image/jpeg", 0.95);
-					if (i > 0) pdf.addPage();
-					pdf.addImage(imgData, "JPEG", 0, 0, 210, 297);
-				}
-
-				const pdfBlob = pdf.output("blob");
-				const file = new File([pdfBlob], `invoice_${Date.now()}.pdf`, {
-					type: "application/pdf",
-				});
-
-				try {
-					const formData = new FormData();
-					formData.append("file", file);
-					formData.append("filename", `invoice_${Date.now()}.pdf`);
-					fetch("/api/upload", { method: "POST", body: formData })
-						.then((res) => console.log("R2 backup initiated", res.status))
-						.catch((err) => console.error("R2 backup failed", err));
-				} catch (uploadErr) {
-					console.error("R2 backup error:", uploadErr);
-				}
-
-				if (navigator.canShare && navigator.canShare({ files: [file] })) {
-					try {
-						await navigator.share({
-							files: [file],
-							title: `Invoice`,
-							text: message,
-						});
-						setDownloading(false);
-						return;
-					} catch (err) {
-						console.log("Native share cancelled or failed:", err);
-					}
-				}
-
-				const url = URL.createObjectURL(pdfBlob);
-				const a = document.createElement("a");
-				a.href = url;
-				a.download = `invoice_${Date.now()}.pdf`;
-				a.click();
-				URL.revokeObjectURL(url);
-
-				alert(
-					"The PDF has been downloaded!\n\nWhatsApp Web doesn't allow automatic file attachments. Please drag and drop the downloaded PDF into the chat window after it opens.",
-				);
-
-				const encoded = encodeURIComponent(message);
-				const waUrl = `https://wa.me/${cleanMobile}?text=${encoded}`;
-				window.open(waUrl, "_blank");
-			}
-		} catch (e) {
-			console.error("Failed to generate PDF for WhatsApp:", e);
-		} finally {
-			setDownloading(false);
+		const encoded = encodeURIComponent(message);
+		const waUrl = `https://wa.me/${cleanMobile}?text=${encoded}`;
+		
+		if (isMobile) {
+			window.location.href = waUrl;
+		} else if (waWindow) {
+			waWindow.location.href = waUrl;
+		} else {
+			window.open(waUrl, "_blank");
 		}
 	};
 
@@ -276,11 +246,29 @@ export function InvoiceGenerator() {
 				fontFamily: '"Inter", sans-serif',
 			}}
 		>
+				<div className="no-print" style={{
+					position: "fixed",
+					top: "100px",
+					right: "20px",
+					display: "flex",
+					flexDirection: "column",
+					gap: "10px",
+					zIndex: 9999,
+				}}>
+					<button className="bill-wa-btn" style={{ boxShadow: "0 4px 6px rgba(0,0,0,0.2)", padding: "12px 20px", borderRadius: "8px", fontWeight: "bold", fontSize: "15px" }} onClick={() => handleSendWhatsApp('booking')} title="Send Booking WA">
+						💬 Booked
+					</button>
+					<button className="bill-wa-btn" style={{ background: '#059669', boxShadow: "0 4px 6px rgba(0,0,0,0.2)", padding: "12px 20px", borderRadius: "8px", fontWeight: "bold", fontSize: "15px" }} onClick={() => handleSendWhatsApp('completed')} title="Send Ready WA">
+						💬 Ready
+					</button>
+					<button className="bill-wa-btn" style={{ background: '#047857', boxShadow: "0 4px 6px rgba(0,0,0,0.2)", padding: "12px 20px", borderRadius: "8px", fontWeight: "bold", fontSize: "15px" }} onClick={() => handleSendWhatsApp('collected')} title="Send Collected WA">
+						💬 Collected
+					</button>
+				</div>
 			<InvoiceToolbar
 				zoom={zoom}
 				setZoom={setZoom}
 				onNewDoc={onNewDoc}
-				onSendWhatsApp={handleSendWhatsApp}
 				onSave={() => {
 					autoSave();
 					alert("Invoice saved successfully!");

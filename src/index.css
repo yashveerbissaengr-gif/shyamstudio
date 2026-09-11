@@ -86,3 +86,9 @@ table {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
+
+@media print {
+  /* Override global Tailwind containers that might have dark backgrounds */
+  .bg-ink { background-color: transparent !important; }
+  .text-paper { color: #000000 !important; }
+}

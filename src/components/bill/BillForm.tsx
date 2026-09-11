@@ -19,14 +19,8 @@ interface BillFormProps {
 	setCustomerAddress: (v: string) => void;
 	isItemsExpanded: boolean;
 	setIsItemsExpanded: (v: boolean) => void;
-	selectedOptions: Record<string, boolean>;
-	setSelectedOptions: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
-	itemDescriptions: Record<string, string>;
-	setItemDescriptions: React.Dispatch<React.SetStateAction<Record<string, string>>>;
-	itemQuantities: Record<string, string>;
-	setItemQuantities: React.Dispatch<React.SetStateAction<Record<string, string>>>;
-	itemAmounts: Record<string, string>;
-	setItemAmounts: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+	billItems: Array<{ id: string; option: string; description: string; quantity: string; amount: string }>;
+	setBillItems: React.Dispatch<React.SetStateAction<Array<{ id: string; option: string; description: string; quantity: string; amount: string }>>>;
 	details: string;
 	setDetails: (v: string) => void;
 	subTotal: number;
@@ -50,14 +44,8 @@ export function BillForm({
 	setCustomerAddress,
 	isItemsExpanded,
 	setIsItemsExpanded,
-	selectedOptions,
-	setSelectedOptions,
-	itemDescriptions,
-	setItemDescriptions,
-	itemQuantities,
-	setItemQuantities,
-	itemAmounts,
-	setItemAmounts,
+	billItems,
+	setBillItems,
 	details,
 	setDetails,
 	subTotal,
@@ -135,9 +123,9 @@ export function BillForm({
 				>
 					<span className="flex items-center gap-2">
 						📦 Select Items / Products
-						{Object.values(selectedOptions).filter(Boolean).length > 0 && (
+						{billItems.length > 0 && (
 							<span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full font-medium">
-								{Object.values(selectedOptions).filter(Boolean).length} Selected
+								{billItems.length} Selected
 							</span>
 						)}
 					</span>
@@ -150,90 +138,71 @@ export function BillForm({
 					className={`transition-all duration-300 ease-in-out ${isItemsExpanded ? "max-h-[1500px] opacity-100" : "max-h-0 opacity-0"}`}
 				>
 					<div className="p-4 space-y-3 border-t">
-						{predefinedOptions.map((opt) => (
-							<div key={opt} className="p-3 border rounded-md bg-slate-50 transition-colors">
-								<div className="flex items-center">
-									<input
-										type="checkbox"
-										id={opt}
-										checked={!!selectedOptions[opt]}
-										onChange={(e) =>
-											setSelectedOptions((prev) => ({
-												...prev,
-												[opt]: e.target.checked,
-											}))
-										}
-										className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded cursor-pointer"
-									/>
-									<label
-										htmlFor={opt}
-										className="ml-2 text-sm font-medium text-gray-900 flex-1 cursor-pointer select-none"
-									>
-										{opt}
-									</label>
-								</div>
-								<div
-									className={`overflow-hidden transition-all duration-300 ease-in-out ${selectedOptions[opt] ? "max-h-40 opacity-100 mt-3" : "max-h-0 opacity-0"}`}
+						{billItems.map((item) => (
+							<div key={item.id} className="p-3 border rounded-md bg-slate-50 relative">
+								<button 
+									type="button" 
+									onClick={() => setBillItems(prev => prev.filter(i => i.id !== item.id))}
+									className="absolute top-2 right-2 text-red-500 hover:text-red-700 font-bold px-2"
+									title="Remove item"
 								>
-									<div className="ml-6 flex gap-4">
-										<div className="flex-1">
-											<label className="block text-xs font-medium text-gray-700 mb-1">
-												Description
-											</label>
-											<input
-												type="text"
-												value={itemDescriptions[opt] || ""}
-												onChange={(e) =>
-													setItemDescriptions((prev) => ({
-														...prev,
-														[opt]: e.target.value,
-													}))
-												}
-												className="w-full border-gray-300 rounded-md px-3 py-1.5 border text-sm"
-												placeholder={
-													opt === "Other (Custom)"
-														? "Item name & details..."
-														: "Add more details (optional)"
-												}
-											/>
-										</div>
-										<div className="w-24">
-											<label className="block text-xs font-medium text-gray-700 mb-1">Qty</label>
-											<input
-												type="number"
-												min="1"
-												value={itemQuantities[opt] || "1"}
-												onChange={(e) =>
-													setItemQuantities((prev) => ({
-														...prev,
-														[opt]: e.target.value,
-													}))
-												}
-												className="w-full border-gray-300 rounded-md px-3 py-1.5 border text-sm"
-											/>
-										</div>
-										<div className="w-32">
-											<label className="block text-xs font-medium text-gray-700 mb-1">
-												Amount (₹)
-											</label>
-											<input
-												type="number"
-												min="0"
-												value={itemAmounts[opt] || ""}
-												onChange={(e) =>
-													setItemAmounts((prev) => ({
-														...prev,
-														[opt]: e.target.value,
-													}))
-												}
-												className="w-full border-gray-300 rounded-md px-3 py-1.5 border text-sm"
-												placeholder="0"
-											/>
-										</div>
+									✕
+								</button>
+								<div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3 pr-6">
+									<div>
+										<label className="block text-xs font-medium text-gray-700 mb-1">Product/Service</label>
+										<select 
+											value={item.option} 
+											onChange={(e) => setBillItems(prev => prev.map(i => i.id === item.id ? { ...i, option: e.target.value } : i))}
+											className="w-full border-gray-300 rounded-md px-3 py-1.5 border text-sm bg-white"
+										>
+											{predefinedOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+										</select>
+									</div>
+									<div>
+										<label className="block text-xs font-medium text-gray-700 mb-1">Description</label>
+										<input
+											type="text"
+											value={item.description}
+											onChange={(e) => setBillItems(prev => prev.map(i => i.id === item.id ? { ...i, description: e.target.value } : i))}
+											className="w-full border-gray-300 rounded-md px-3 py-1.5 border text-sm"
+											placeholder={item.option === "Other (Custom)" ? "Item name & details..." : "Add more details (optional)"}
+										/>
+									</div>
+								</div>
+								<div className="flex gap-4">
+									<div className="w-24">
+										<label className="block text-xs font-medium text-gray-700 mb-1">Qty</label>
+										<input
+											type="number"
+											min="1"
+											value={item.quantity}
+											onChange={(e) => setBillItems(prev => prev.map(i => i.id === item.id ? { ...i, quantity: e.target.value } : i))}
+											className="w-full border-gray-300 rounded-md px-3 py-1.5 border text-sm"
+										/>
+									</div>
+									<div className="w-32">
+										<label className="block text-xs font-medium text-gray-700 mb-1">Amount (₹)</label>
+										<input
+											type="number"
+											min="0"
+											value={item.amount}
+											onChange={(e) => setBillItems(prev => prev.map(i => i.id === item.id ? { ...i, amount: e.target.value } : i))}
+											className="w-full border-gray-300 rounded-md px-3 py-1.5 border text-sm"
+											placeholder="0"
+										/>
 									</div>
 								</div>
 							</div>
 						))}
+						
+						<button
+							type="button"
+							onClick={() => setBillItems(prev => [...prev, { id: Date.now().toString() + Math.random().toString(), option: predefinedOptions[0], description: "", quantity: "1", amount: "" }])}
+							className="mt-3 w-full py-2 border-2 border-dashed border-gray-300 rounded-md text-gray-600 font-medium hover:bg-gray-50 hover:border-gray-400 transition-colors flex items-center justify-center gap-2 bg-white"
+						>
+							<span className="text-xl leading-none">+</span> Add New Item
+						</button>
 					</div>
 				</div>
 			</div>

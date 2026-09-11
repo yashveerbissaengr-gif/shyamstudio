@@ -22,18 +22,10 @@ export function InvoicePage3({
 		<div className="a4-page">
 			<div className="inv-header">
 				<div className="inv-studio-name">
-					<span
-						contentEditable={!readOnly}
-						suppressContentEditableWarning
-						data-placeholder="Studio Name"
-					>
-						SHYAM STUDIO
-					</span>
+					<span>SHYAM STUDIO</span>
 				</div>
 				<div className="inv-studio-sub">
-					<span contentEditable suppressContentEditableWarning data-placeholder="tagline">
-						Photography · Videography · Events
-					</span>
+					<span>Photography · Videography · Events</span>
 				</div>
 			</div>
 
@@ -58,9 +50,7 @@ export function InvoicePage3({
 			{showPaymentMethod && (
 				<>
 					<div className="inv-section-head">
-						<span contentEditable suppressContentEditableWarning>
-							Payment Options
-						</span>
+						<span>Payment Options</span>
 					</div>
 					<div style={{ marginBottom: 20 }}>
 						{payMethods.map((pm) => (
@@ -96,13 +86,14 @@ export function InvoicePage3({
 										color: pm.checked ? "#163a4a" : "#52636d",
 										fontWeight: pm.checked ? 600 : 400,
 									}}
-									onBlur={(e) =>
+									onBlur={(e) => {
+										const newLabel = e.currentTarget.innerText;
 										setPayMethods?.((prev) =>
 											prev.map((p) =>
-												p.id === pm.id ? { ...p, label: e.currentTarget.innerText } : p,
+												p.id === pm.id ? { ...p, label: newLabel } : p,
 											),
-										)
-									}
+										);
+									}}
 								>
 									{pm.label}
 								</span>
@@ -129,9 +120,7 @@ export function InvoicePage3({
 
 			{/* Bank details */}
 			<div className="inv-section-head">
-				<span contentEditable suppressContentEditableWarning>
-					Bank Details
-				</span>
+				<span>Bank Details</span>
 			</div>
 			<table className="info-table">
 				<tbody>
@@ -143,9 +132,7 @@ export function InvoicePage3({
 					].map(([l, v]) => (
 						<tr key={l}>
 							<td>
-								<span contentEditable={!readOnly} suppressContentEditableWarning>
-									{l}
-								</span>
+								<span>{l}</span>
 							</td>
 							<td>
 								<span contentEditable={!readOnly} suppressContentEditableWarning>
@@ -162,9 +149,7 @@ export function InvoicePage3({
 				<div style={{ textAlign: "center" }}>
 					<div className="sig-line" />
 					<div style={{ fontSize: "9.5pt", color: "#52636d", marginTop: 4 }}>
-						<span contentEditable suppressContentEditableWarning>
-							Authorized Signature
-						</span>
+						<span>Authorized Signature</span>
 					</div>
 					<div
 						style={{
@@ -174,17 +159,13 @@ export function InvoicePage3({
 							marginTop: 2,
 						}}
 					>
-						<span contentEditable suppressContentEditableWarning>
-							Shyam Studio
-						</span>
+						<span>Shyam Studio</span>
 					</div>
 				</div>
 			</div>
 
 			<div className="thanks-msg">
-				<span contentEditable suppressContentEditableWarning>
-					✦ Thank you for choosing Shyam Studio! ✦
-				</span>
+				<span>✦ Thank you for choosing Shyam Studio! ✦</span>
 			</div>
 		</div>
 	);

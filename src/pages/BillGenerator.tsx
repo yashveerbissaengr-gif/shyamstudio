@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { BillForm } from "../components/bill/BillForm";
 import { BillToolbar } from "../components/bill/BillToolbar";
@@ -8,18 +8,12 @@ import { downloadAsJPG, downloadAsPDF } from "../utils/downloadHelper";
 
 const uid = () => crypto.randomUUID();
 
-const predefinedOptions = [
-	"Photo frame",
-	"Passport size photo",
-	"Printout",
-	"Lamination",
-	"Other (Custom)",
-];
 const watermarkText = "Shyam Graphic Designer\nShyam Graphic Designer";
 
 export function BillGenerator() {
 	const navigate = useNavigate();
 	const docRef = useRef<HTMLDivElement>(null);
+	const canvasRef = useRef<HTMLDivElement>(null);
 
 	// View states
 	const [mode, setMode] = useState<"form" | "preview">("form");
@@ -39,20 +33,11 @@ export function BillGenerator() {
 	const [showWatermark, setShowWatermark] = useState(true);
 
 	// Predefined Items logic
-	const [selectedOptions, setSelectedOptions] = useState<Record<string, boolean>>({});
-	const [itemQuantities, setItemQuantities] = useState<Record<string, string>>({});
-	const [itemAmounts, setItemAmounts] = useState<Record<string, string>>({});
-	const [itemDescriptions, setItemDescriptions] = useState<Record<string, string>>({});
+	const [billItems, setBillItems] = useState<Array<{ id: string; option: string; description: string; quantity: string; amount: string }>>([]);
 	const [isItemsExpanded, setIsItemsExpanded] = useState(false);
 
 	const calculateSubTotal = () => {
-		let t = 0;
-		predefinedOptions.forEach((opt) => {
-			if (selectedOptions[opt]) {
-				t += parseFloat(itemAmounts[opt]) || 0;
-			}
-		});
-		return t;
+		return billItems.reduce((acc, item) => acc + (parseFloat(item.amount) || 0), 0);
 	};
 
 	const subTotal = calculateSubTotal();
@@ -60,24 +45,18 @@ export function BillGenerator() {
 	const balance = total - advance;
 
 	const getItemsForPreview = (): BillItem[] => {
-		const items: BillItem[] = [];
-		let sr = 1;
-		predefinedOptions.forEach((opt) => {
-			if (selectedOptions[opt]) {
-				const customDesc = itemDescriptions[opt] || "";
-				const desc =
-					opt === "Other (Custom)" ? customDesc : customDesc ? `${opt} - ${customDesc}` : opt;
-				items.push({
-					id: uid(),
-					sr: String(sr++),
-					desc: desc,
-					qty: itemQuantities[opt] || "1",
-					rate: "", // Not strictly needed if amount is given directly
-					amount: itemAmounts[opt] || "0",
-				});
-			}
+		return billItems.map((item, index) => {
+			const customDesc = item.description || "";
+			const desc = item.option === "Other (Custom)" ? customDesc : customDesc ? `${item.option} - ${customDesc}` : item.option;
+			return {
+				id: item.id,
+				sr: String(index + 1),
+				desc: desc,
+				qty: item.quantity || "1",
+				rate: "",
+				amount: item.amount || "0",
+			};
 		});
-		return items;
 	};
 
 	const saveSilently = () => {
@@ -137,7 +116,7 @@ export function BillGenerator() {
 		}
 	};
 
-	const handleSendWhatsApp = async () => {
+	const handleSendWhatsApp = async (type: 'booking' | 'completed' | 'collected') => {
 		saveSilently();
 		let targetMobile = customerMobile;
 		if (!targetMobile) {
@@ -152,7 +131,16 @@ export function BillGenerator() {
 			cleanMobile = "91" + cleanMobile; // Assume India if 10 digits
 		}
 		
-		const message = `Hello ${customerName ? customerName : "Customer"},\n\nYour bill details from Shyam Studio:\nBill No: ${billNo}\nDate: ${date}\nSub Total: ₹${subTotal}\nDiscount: ₹${discount}\nTotal Amount: ₹${total}\nAdvance: ₹${advance}\nBalance: ₹${balance}\n\nThank you!`;
+		const itemsList = billItems.map(item => `- ${item.option} ${item.description ? `(${item.description})` : ''} - ₹${item.amount || 0}`).join('\n');
+		
+		let message = "";
+		if (type === 'booking') {
+			message = `Dear Customer,\nShyam photo studio Thank's You\nFor Booking:\n${itemsList}\nYour Job ID is: ${billNo}\nDATE : ${date}`;
+		} else if (type === 'completed') {
+			message = `Dear Customer,\nYour Job ID : ${billNo}\nIs completed Please Collect Your Job\nBalance Amt : ${balance}\nFrom Shyam photo studio`;
+		} else if (type === 'collected') {
+			message = `Dear Customer,\nThank You For Successfully Collected Your Job\nJob Code : ${billNo}\nFrom Shyam photo studio`;
+		}
 
 		const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 		
@@ -234,6 +222,28 @@ export function BillGenerator() {
 		}
 	};
 
+	useEffect(() => {
+		if (mode !== "preview") return;
+		const observer = new ResizeObserver((entries) => {
+			for (let entry of entries) {
+				const { width, height } = entry.contentRect;
+				const scaleX = (width - 40) / 794;
+				const scaleY = (height - 80) / 1122;
+				const scale = Math.min(scaleX, scaleY, 1);
+				if (scale > 0) {
+					setZoom(Math.floor(scale * 100));
+				} else {
+					setZoom(100);
+				}
+			}
+		});
+		if (canvasRef.current) {
+			observer.observe(canvasRef.current);
+		}
+		return () => observer.disconnect();
+	}, [mode]);
+
+
 	if (mode === "form") {
 		return (
 			<BillForm
@@ -247,14 +257,8 @@ export function BillGenerator() {
 				setCustomerAddress={setCustomerAddress}
 				isItemsExpanded={isItemsExpanded}
 				setIsItemsExpanded={setIsItemsExpanded}
-				selectedOptions={selectedOptions}
-				setSelectedOptions={setSelectedOptions}
-				itemDescriptions={itemDescriptions}
-				setItemDescriptions={setItemDescriptions}
-				itemQuantities={itemQuantities}
-				setItemQuantities={setItemQuantities}
-				itemAmounts={itemAmounts}
-				setItemAmounts={setItemAmounts}
+				billItems={billItems}
+				setBillItems={setBillItems}
 				details={details}
 				setDetails={setDetails}
 				subTotal={subTotal}
@@ -275,195 +279,82 @@ export function BillGenerator() {
 	// PREVIEW MODE
 	const previewItems = getItemsForPreview();
 
-	const renderBill = (index: number) => (
-		<main className="bill" key={index}>
-			{showWatermark && (
-				<div className="watermark" aria-hidden="true">
-					<span style={{ whiteSpace: "pre-wrap" }}>{watermarkText}</span>
-				</div>
-			)}
-			<div className="content">
-				<h1 className="brand">
-					<span>Shyam Graphic Designer</span>
-				</h1>
-				<div className="header-rule"></div>
-				<div className="address">
-					<span>
-						PLAT NO. 1, SHOP NO. 3 BALAJI NAGAR, NEAR BY- BHAWANI HOSPITEL OPPOSITE
-						<br />
-						PUNAPU ROAD, PARDI NAGPUR. 35 &nbsp;&nbsp;&nbsp; MO. 7775854937, 9404291477
-					</span>
-				</div>
-				<div className="meta">
-					<span style={{ display: "inline-flex", alignItems: "baseline", gap: "3px" }}>
-						<span>No.</span>
-						<span
-							style={{
-								display: "inline-block",
-								borderBottom: "1px solid #dc2626",
-								padding: "0 5px 1px",
-								color: "#dc2626",
-								fontWeight: "bold",
-								fontSize: "10px",
-								minWidth: "30px",
-								textAlign: "center",
-							}}
-						>
-							{billNo}
-						</span>
-					</span>
-					<span style={{ display: "inline-flex", alignItems: "baseline", gap: "3px" }}>
-						<span>Date :-</span>
-						<span
-							style={{
-								display: "inline-block",
-								borderBottom: "1px solid #111",
-								padding: "0 5px 1px",
-								fontWeight: "bold",
-								minWidth: "55px",
-								textAlign: "center",
-							}}
-						>
-							{date}
-						</span>
-					</span>
-				</div>
-				<section className="fields" aria-label="Customer details">
-					<div className="field">
-						<span className="label">Name :-</span>
-						<span className="line" style={{ padding: "0 4px" }}>
-							{customerName}
-						</span>
-						<span className="label">Mo.</span>
-						<span className="line short" style={{ padding: "0 4px" }}>
-							{customerMobile}
-						</span>
-					</div>
-					<div className="field">
-						<span className="label">Address :-</span>
-						<span className="line" style={{ padding: "0 4px" }}>
-							{customerAddress}
-						</span>
-					</div>
-				</section>
-				<table className="bill-table" aria-label="Bill items">
-					<thead>
-						<tr>
-							<th>Sr</th>
-							<th>Description</th>
-							<th>Qty</th>
-							<th>Rate</th>
-							<th>Amount</th>
-						</tr>
-					</thead>
-					<tbody>
-						<tr>
-							<td style={{ padding: "4px 2px", textAlign: "center" }}>
-								{previewItems.map((row) => (
-									<div key={row.id}>{row.sr}</div>
-								))}
-							</td>
-							<td className="notes">
-								<div style={{ padding: "4px 2px" }}>
-									{previewItems.map((row) => (
-										<div key={row.id}>{row.desc}</div>
-									))}
-									{details && (
-										<div
-											style={{
-												marginTop: "8px",
-												whiteSpace: "pre-wrap",
-											}}
-										>
-											{details}
-										</div>
-									)}
-								</div>
-							</td>
-							<td style={{ padding: "4px 2px", textAlign: "center" }}>
-								{previewItems.map((row) => (
-									<div key={row.id}>{row.qty}</div>
-								))}
-							</td>
-							<td style={{ padding: "4px 2px", textAlign: "center" }}>
-								{/* Rate column left empty as per standard requested usage or could be computed */}
-							</td>
-							<td style={{ padding: "4px 2px", textAlign: "center" }}>
-								{previewItems.map((row) => (
-									<div key={row.id}>{row.amount}</div>
-								))}
-							</td>
-						</tr>
-						<tr>
-							<td colSpan={3} className="total-label">
-								Sub Total
-							</td>
-							<td className="total-cell"></td>
-							<td className="amount-cell">{subTotal}</td>
-						</tr>
-						<tr>
-							<td colSpan={3} className="total-label">
-								Discount
-							</td>
-							<td className="total-cell"></td>
-							<td className="amount-cell">{discount}</td>
-						</tr>
-						<tr>
-							<td colSpan={3} className="total-label">
-								Total
-							</td>
-							<td className="total-cell"></td>
-							<td className="amount-cell">{total}</td>
-						</tr>
-						<tr>
-							<td colSpan={3} className="total-label">
-								Add.
-							</td>
-							<td className="total-cell"></td>
-							<td className="amount-cell">{advance}</td>
-						</tr>
-						<tr>
-							<td colSpan={3} className="total-label">
-								Bal.
-							</td>
-							<td className="total-cell"></td>
-							<td className="amount-cell">{balance}</td>
-						</tr>
-					</tbody>
-				</table>
-				<footer className="footer">
-					<div className="terms">
-						<span style={{ whiteSpace: "pre-wrap", display: "block" }}>
-							{`1) Advance payment is non-refundable”.\n2) No refund or return after Printing.”\n3) Photo will be saved for 30 days only.”`}
-						</span>
-					</div>
-					<div className="signature">
-						<span>
-							Signature
-							<br />
-							<br />
-							________________
-						</span>
-					</div>
-				</footer>
-				<div
-					style={{
-						background: "#064e3b",
-						color: "#fff",
-						textAlign: "center",
-						padding: "8px 4px",
-						fontSize: "12px",
-						fontWeight: "bold",
-						marginTop: "auto",
-						letterSpacing: "0.02em",
-						borderRadius: "4px",
-						width: "100%"
-					}}
-				>
-					We cover all types of photography and videography events”
-				</div>
-			</div>
-		</main>
+	const renderBill = () => (
+		<main className="bill">
+            {showWatermark && (
+              <div className="watermark" aria-hidden="true">
+                <span style={{ whiteSpace: 'pre-wrap' }}>{watermarkText}</span>
+              </div>
+            )}
+            <div className="content">
+              <h1 className="brand">
+                <span>Shyam Graphic Designer</span>
+              </h1>
+              <div className="header-rule"></div>
+              <div className="address">
+                <span>
+                  PLAT NO. 1, SHOP NO. 3 BALAJI NAGAR, NEAR BY- BHAWANI HOSPITEL OPPOSITE<br/>PUNAPU ROAD, PARDI NAGPUR. 35 &nbsp;&nbsp;&nbsp; MO. 7775854937, 9404291477
+                </span>
+              </div>
+              <div className="meta">
+                <span>No. <span style={{ borderBottom:"2px solid var(--red)", color:"var(--red)", fontWeight:"bold", fontSize:"20px", padding:"0 8px" }}>{billNo}</span></span>
+                <span>Date :- <span style={{borderBottom:'1.5px solid #111', padding:'0 8px'}}>{date}</span></span>
+              </div>
+              <section className="fields" aria-label="Customer details">
+                <div className="field">
+                  <span className="label">Name :-</span>
+                  <span className="line" style={{padding:'0 8px'}}>{customerName}</span>
+                  <span className="label">Mo.</span>
+                  <span className="line short" style={{padding:'0 8px'}}>{customerMobile}</span>
+                </div>
+                <div className="field">
+                  <span className="label">Address :-</span>
+                  <span className="line" style={{padding:'0 8px'}}>{customerAddress}</span>
+                </div>
+              </section>
+              <table className="bill-table" aria-label="Bill items">
+                <thead><tr><th>Sr</th><th>Description</th><th>Qty</th><th>Rate</th><th>Amount</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td style={{ padding: '8px 4px', textAlign: 'center' }}>
+                      {previewItems.map(row => <div key={row.id}>{row.sr}</div>)}
+                    </td>
+                    <td className="notes">
+                      <div style={{ padding: '8px 4px' }}>
+                        {previewItems.map(row => <div key={row.id}>{row.desc}</div>)}
+                        {details && <div style={{marginTop: '16px', whiteSpace: 'pre-wrap'}}>{details}</div>}
+                      </div>
+                    </td>
+                    <td style={{ padding: '8px 4px', textAlign: 'center' }}>
+                      {previewItems.map(row => <div key={row.id}>{row.qty}</div>)}
+                    </td>
+                    <td style={{ padding: '8px 4px', textAlign: 'center' }}>
+                      {/* Rate column left empty as per standard requested usage or could be computed */}
+                    </td>
+                    <td style={{ padding: '8px 4px', textAlign: 'center' }}>
+                      {previewItems.map(row => <div key={row.id}>{row.amount}</div>)}
+                    </td>
+                  </tr>
+                  <tr><td colSpan={3} className="total-label">Total</td><td className="total-cell"></td><td className="amount-cell">{total}</td></tr>
+                  <tr><td colSpan={3} className="total-label">Add.</td><td className="total-cell"></td><td className="amount-cell">{advance}</td></tr>
+                  <tr><td colSpan={3} className="total-label">Bal.</td><td className="total-cell"></td><td className="amount-cell">{balance}</td></tr>
+                </tbody>
+              </table>
+              <footer className="footer">
+                <div className="terms">
+                  <span style={{ whiteSpace: 'pre-wrap', display: 'block' }}>
+                    {`1) Advance payment is non-refundable”.\n2) No refund or return after Printing.”\n3) Photo will be saved for 30 days only.”`}
+                  </span>
+                </div>
+                <div className="signature">
+                  <span>Signature<br/><br/>________________</span>
+                </div>
+              </footer>
+              <div style={{ background: '#064e3b', color: '#fff', textAlign: 'center', padding: '6px', fontSize: '18px', fontWeight: 'bold', marginTop: '16px', letterSpacing: '0.02em', borderRadius: '4px' }}>
+                We cover all types of photography and videography events”
+              </div>
+            </div>
+          </main>
 	);
 
 	return (
@@ -487,9 +378,7 @@ export function BillGenerator() {
         }
         .bill-toolbar button:hover { background:rgba(255,255,255,0.2); }
         .bill-toolbar .sep { width:1px; min-height: 1.2em; background:#7c4a00; margin:0 8px; }
-        .bill-toolbar .zoom-ctl { display:flex; align-items:center; gap:6px; font-size:13px; margin-right: 12px; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; color: #fef3c7; }
-        .bill-toolbar .zoom-ctl button { background: transparent; padding: 4px 8px; border: none; color: inherit; cursor: pointer; font-weight: bold; }
-        .bill-toolbar .zoom-ctl button:hover { background: rgba(255,255,255,0.2); }
+        .bill-toolbar .zoom-ctl { display:flex; align-items:center; gap:6px; font-size:13px; margin-right: 12px; }
         .bill-dl-btn { background:#c00 !important; color:#fff !important; }
         .bill-dl-btn:hover { background:#a00 !important; }
         .bill-save-btn { background:#047857 !important; color:#fff !important; }
@@ -498,66 +387,105 @@ export function BillGenerator() {
         .bill-wa-btn:hover { background:#15803d !important; }
         .bill-canvas { flex:1; overflow-y:auto; padding:40px 20px; }
 
+        /* A4 Layout CSS */
         .bill-container { --red:#f10b0b; --ink:#111; --watermark:#c8c8c8; color:var(--ink); font-family:Arial, Helvetica, sans-serif; }
         .bill-container * { box-sizing:border-box; }
-        .bill-container .bill-page-a4 { width:4.135in; min-height:5.845in; margin:0 auto; background:#fff; box-shadow:0 4px 24px #0002; display:block; }
-        .bill-container .bill { position:relative; width:100%; height:100%; padding:20px 24px; overflow:hidden; border:none; }
-        .bill-container .bill:nth-child(n+2) { display:none; }
-        .bill-container .watermark { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; z-index:0; pointer-events:none; transform:rotate(-24deg); color:var(--watermark); font-family:cursive; font-size:42px; font-weight:700; line-height:1.5; opacity:.2; white-space:nowrap; text-align:center; }
-        .bill-container .content { position:relative; z-index:1; height:100%; display:flex; flex-direction:column; }
-        .bill-container .brand { margin:0; text-align:center; color:var(--red); font-family:Georgia, "Times New Roman", serif; font-size:28px; line-height:1.2; font-weight:700; }
-        .bill-container .header-rule { margin:8px -24px 0; border-top:2px double var(--ink); }
-        .bill-container .address { padding:6px 10px; text-align:center; font-size:9.5px; line-height:1.5; font-weight:700; letter-spacing:.02em; background-color:#111827; color:#ffffff; border-radius:4px; margin-top:4px; }
-        .bill-container .meta { display:flex; justify-content:space-between; padding:8px 4px 12px; font-size:11px; font-weight:700; }
-        .bill-container .fields { display:grid; gap:8px; margin:0 4px 12px; font-size:11px; font-weight:700; }
-        .bill-container .field { display:flex; align-items:end; gap:6px; }
+        .bill-container .bill { position:relative; width:8.27in; min-height:11.69in; margin:0 auto; padding:36px 42px 32px; overflow:hidden; background:#fff; box-shadow:0 4px 24px #0002; }
+        .bill-container .watermark { position:absolute; inset:215px -100px 170px; z-index:0; pointer-events:none; transform:rotate(-24deg); color:var(--watermark); font-family:cursive; font-size:108px; font-weight:700; line-height:1.85; opacity:.2; white-space:nowrap; text-align:center; }
+        .bill-container .content { position:relative; z-index:1; }
+        .bill-container .brand { margin:0; text-align:center; color:var(--red); font-family:Georgia, "Times New Roman", serif; font-size:45px; line-height:1.15; font-weight:700; }
+        .bill-container .header-rule { margin:13px -42px 0; border-top:4px double var(--ink); }
+        .bill-container .address { padding:6px 5px 7px; border-bottom:2px solid var(--ink); text-align:center; font-size:16.5px; line-height:1.25; font-weight:800; letter-spacing:.01em; background-color:#bbf7d0; }
+        .bill-container .meta { display:flex; justify-content:space-between; padding:12px 7px 27px; font-size:18px; font-weight:700; }
+        .bill-container .fields { display:grid; gap:12px; margin:0 7px 20px; font-size:18px; font-weight:700; }
+        .bill-container .field { display:flex; align-items:end; gap:8px; }
         .bill-container .field .label { white-space:nowrap; }
-        .bill-container .line { flex:1; min-width:0; min-height: 1.2em; border-bottom:1px solid var(--ink); display:inline-block; }
+        .bill-container .line { flex:1; min-width:0; min-height: 1.2em; border-bottom:1.5px solid var(--ink); display:inline-block; }
         .bill-container .line.short { flex:0 0 35%; }
-        .bill-container .bill-table { width:100%; border-collapse:collapse; table-layout:fixed; font-size:11px; flex:1; }
-        .bill-container .bill-table th, .bill-container .bill-table td { border:1.5px solid var(--ink); }
-        .bill-container .bill-table th { height:26px; color:var(--red); font-family:Georgia, "Times New Roman", serif; font-size:12px; }
-        .bill-container .bill-table th:nth-child(1) { width:8%; }
-        .bill-container .bill-table th:nth-child(2) { width:48%; }
-        .bill-container .bill-table th:nth-child(3) { width:12%; }
-        .bill-container .bill-table th:nth-child(4) { width:16%; }
-        .bill-container .bill-table th:nth-child(5) { width:16%; }
-        .bill-container .bill-table tbody td { vertical-align:top; }
-        .bill-container .bill-table .notes { padding:4px; border-right:0; line-height:1.4; }
-        .bill-container .bill-table .total-label { vertical-align:middle; height:24px; color:var(--red); font-family:Georgia, "Times New Roman", serif; font-size:11px; font-weight:700; padding-left:6px; }
-        .bill-container .bill-table .total-cell { height:24px; }
-        .bill-container .bill-table .amount-cell { height:24px; font-weight: bold; text-align: center; }
-        .bill-container .footer { display:flex; justify-content:space-between; align-items:flex-end; margin-top:8px; padding-bottom:8px; }
-        .bill-container .terms { color:var(--red); font-family:Georgia, "Times New Roman", serif; font-size:10px; line-height:1.3; font-weight:700; }
-        .bill-container .signature { padding:0 12px 0 0; font-family:Georgia, "Times New Roman", serif; font-size:10px; text-align:center; }
+        .bill-container .bill-table { width:100%; border-collapse:collapse; table-layout:fixed; font-size:19px; }
+        .bill-container .bill-table th, .bill-container .bill-table td { border:3px solid var(--ink); }
+        .bill-container .bill-table th { height:48px; color:var(--red); font-family:Georgia, "Times New Roman", serif; font-size:21px; }
+        .bill-container .bill-table th:nth-child(1) { width:6%; }
+        .bill-container .bill-table th:nth-child(2) { width:54%; }
+        .bill-container .bill-table th:nth-child(3) { width:10%; }
+        .bill-container .bill-table th:nth-child(4) { width:15%; }
+        .bill-container .bill-table th:nth-child(5) { width:15%; }
+        .bill-container .bill-table tbody td { height:465px; vertical-align:top; }
+        .bill-container .bill-table .notes { padding:0 9px 8px; border-right:0; line-height:1.3; }
+        .bill-container .bill-table .total-label { vertical-align:middle; height:43px; color:var(--red); font-family:Georgia, "Times New Roman", serif; font-size:20px; font-weight:700; padding-left:10px; }
+        .bill-container .bill-table .total-cell { height:43px; }
+        .bill-container .bill-table .amount-cell { height:43px; font-weight: bold; text-align: center; }
+        .bill-container .footer { display:flex; justify-content:space-between; align-items:flex-end; margin-top:11px; }
+        .bill-container .terms { color:var(--red); font-family:Georgia, "Times New Roman", serif; font-size:19px; line-height:1.18; font-weight:700; }
+        .bill-container .signature { padding:0 18px 4px 0; font-family:Georgia, "Times New Roman", serif; font-size:16px; }
+
+        .print-only { display: none; }
 
         @media print {
-          @page { size: A4 portrait; margin: 0; }
+          @page { size: A4 portrait; margin: 5mm; }
           .bill-toolbar { display:none !important; }
           .bill-editor-root { height:auto; background:none; }
-          .bill-canvas { padding:0; overflow:visible; }
-          .bill-container .bill-page-a4 { margin:0; box-shadow:none; width:210mm !important; height:148.5mm !important; overflow:hidden !important; margin:0 !important; padding:0 !important; display:grid !important; grid-template-columns:1fr 1fr !important; grid-template-rows:1fr !important; }
-          .bill-container .bill { display:block !important; border-right:1px dashed #ccc !important; border-bottom:none !important; }
-          .bill-container .bill:nth-child(even) { border-right:none !important; }
-          .bill-container .bill:nth-child(n+3) { display:none !important; }
-          html,body { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+          .bill-canvas { padding:0; overflow:visible; display: block; }
+          .bill-container { transform: none !important; width: 210mm !important; height: 148.5mm !important; }
+          .bill-container .bill { margin:0; box-shadow:none; }
+          
+          .bill-print-grid {
+            display: flex !important;
+            flex-direction: row !important;
+            justify-content: space-between !important;
+            align-items: flex-start !important;
+            width: 100% !important;
+            height: 140mm !important;
+            box-sizing: border-box !important;
+            overflow: hidden !important;
+            page-break-after: avoid !important;
+            break-after: avoid !important;
+          }
+          
+          .bill-wrapper {
+            width: 49% !important;
+            height: 140mm !important;
+            overflow: hidden !important;
+            border: 1px dashed #ccc;
+          }
+          
+          .bill-wrapper .bill {
+            zoom: 0.48;
+            margin: 0;
+            box-shadow: none;
+          }
+          
+          .print-only { display: block !important; }
+          html,body { -webkit-print-color-adjust:exact; print-color-adjust:exact; background: #ffffff !important; }
         }
-
-        .print-mode .bill-page-a4 { width:210mm !important; height:148.5mm !important; overflow:hidden !important; margin:0 !important; padding:0 !important; display:grid !important; grid-template-columns:1fr 1fr !important; grid-template-rows:1fr !important; box-shadow:none !important; }
-        .print-mode .bill { display:block !important; border-right:1px dashed #ccc !important; border-bottom:none !important; }
-        .print-mode .bill:nth-child(even) { border-right:none !important; }
-        .print-mode .bill:nth-child(n+3) { display:none !important; }
       `}</style>
 
 			{/* TOOLBAR */}
+			<div className="no-print" style={{
+				position: "fixed",
+				top: "100px",
+				right: "20px",
+				display: "flex",
+				flexDirection: "column",
+				gap: "10px",
+				zIndex: 9999,
+			}}>
+				<button className="bill-wa-btn" style={{ boxShadow: "0 4px 6px rgba(0,0,0,0.2)", padding: "12px 20px", borderRadius: "8px", fontWeight: "bold", fontSize: "15px" }} onClick={() => handleSendWhatsApp('booking')} title="Send Booking WA">
+					💬 Booked
+				</button>
+				<button className="bill-wa-btn" style={{ background: '#059669', boxShadow: "0 4px 6px rgba(0,0,0,0.2)", padding: "12px 20px", borderRadius: "8px", fontWeight: "bold", fontSize: "15px" }} onClick={() => handleSendWhatsApp('completed')} title="Send Ready WA">
+					💬 Ready
+				</button>
+				<button className="bill-wa-btn" style={{ background: '#047857', boxShadow: "0 4px 6px rgba(0,0,0,0.2)", padding: "12px 20px", borderRadius: "8px", fontWeight: "bold", fontSize: "15px" }} onClick={() => handleSendWhatsApp('collected')} title="Send Collected WA">
+					💬 Collected
+				</button>
+			</div>
+
 			<BillToolbar
 				onEdit={() => setMode("form")}
-				zoom={zoom}
-				setZoom={setZoom}
 				showWatermark={showWatermark}
 				setShowWatermark={setShowWatermark}
 				downloading={downloading}
-				onSendWhatsApp={handleSendWhatsApp}
 				onSave={handleSave}
 				onPrint={() => {
 					saveSilently();
@@ -568,7 +496,7 @@ export function BillGenerator() {
 			/>
 
 			{/* CANVAS */}
-			<div className="bill-canvas">
+			<div className="bill-canvas" ref={canvasRef}>
 				<div
 					ref={docRef}
 					className="bill-container"
@@ -578,11 +506,13 @@ export function BillGenerator() {
 						transition: "transform .2s",
 					}}
 				>
-					<div className="bill-page-a4">
-						{renderBill(1)}
-						{renderBill(2)}
-						{renderBill(3)}
-						{renderBill(4)}
+					<div className="bill-print-grid">
+						<div className="bill-wrapper" ref={docRef}>
+							{renderBill()}
+						</div>
+						<div className="bill-wrapper print-only" aria-hidden="true">
+							{renderBill()}
+						</div>
 					</div>
 				</div>
 			</div>

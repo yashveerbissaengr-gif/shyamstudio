@@ -1,5 +1,5 @@
-import type React from "react";
 import { Link } from "react-router-dom";
+
 
 function exec(cmd: string, value?: string) {
 	document.execCommand(cmd, false, value);
@@ -7,26 +7,30 @@ function exec(cmd: string, value?: string) {
 
 interface InvoiceToolbarProps {
 	zoom: number;
-	setZoom: React.Dispatch<React.SetStateAction<number>>;
+	setZoom: (val: number | ((prev: number) => number)) => void;
 	onNewDoc: () => void;
-	onSendWhatsApp: () => void;
 	onSave: () => void;
 	onPrint: () => void;
 	onDownloadPDF: () => void;
 	onDownloadJPG: () => void;
 	downloading: boolean;
+	status?: 'ACTIVE' | 'CANCELLED';
+	isEditable?: boolean;
+	onCancel?: () => void;
 }
 
 export function InvoiceToolbar({
 	zoom,
 	setZoom,
 	onNewDoc,
-	onSendWhatsApp,
 	onSave,
 	onPrint,
 	onDownloadPDF,
 	onDownloadJPG,
 	downloading,
+	status,
+	isEditable = true,
+	onCancel
 }: InvoiceToolbarProps) {
 	return (
 		<div className="inv-toolbar">
@@ -67,12 +71,34 @@ export function InvoiceToolbar({
 			</button>
 
 			<div style={{ marginLeft: "auto", display: "flex", gap: "8px", alignItems: "center" }}>
-				<button className="bill-wa-btn" onClick={onSendWhatsApp}>
-					💬 Send WA
-				</button>
-				<button className="bill-save-btn" onClick={onSave}>
-					💾 Save to App
-				</button>
+				{status === 'CANCELLED' && (
+					<span className="bg-red-100 text-red-700 text-xs font-bold px-2 py-1 rounded uppercase tracking-wider">
+						Cancelled
+					</span>
+				)}
+				{status !== 'CANCELLED' && !isEditable && (
+					<span className="bg-yellow-100 text-yellow-700 text-xs font-bold px-2 py-1 rounded uppercase tracking-wider">
+						Locked
+					</span>
+				)}
+				{status !== 'CANCELLED' && isEditable && (
+					<span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded uppercase tracking-wider">
+						Editable
+					</span>
+				)}
+
+				{isEditable && status !== 'CANCELLED' && (
+					<button className="bill-save-btn" onClick={onSave}>
+						💾 Save to App
+					</button>
+				)}
+				
+				{!isEditable && status !== 'CANCELLED' && onCancel && (
+					<button style={{ background: "#dc2626", color: "#fff", fontWeight: "bold", padding: "6px 12px", borderRadius: "4px", border: "none", cursor: "pointer" }} onClick={onCancel}>
+						❌ Cancel Document
+					</button>
+				)}
+
 				<button className="bill-print-btn" onClick={onPrint}>
 					🖨 Print
 				</button>

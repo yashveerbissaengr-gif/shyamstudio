@@ -34,6 +34,8 @@ export function Dashboard() {
 			type: "bill",
 			isCloud: false,
 			url: null,
+			status: b.status || 'ACTIVE',
+			isEditable: storage.canEditBill(b.id)
 		}));
 
 		const invoices = storage.getAllInvoices().map((i) => ({
@@ -44,6 +46,8 @@ export function Dashboard() {
 			type: "invoice",
 			isCloud: false,
 			url: null,
+			status: i.status || 'ACTIVE',
+			isEditable: storage.canEditInvoice(i.id)
 		}));
 
 		const cloudDocs = storage.getAllCloudDocs().map((d) => ({
@@ -392,6 +396,21 @@ export function Dashboard() {
 																		Cloudinary
 																	</span>
 																)}
+																{!file.isCloud && file.status === "CANCELLED" && (
+																	<span className="bg-red-100 text-red-700 text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">
+																		Cancelled
+																	</span>
+																)}
+																{!file.isCloud && file.status !== "CANCELLED" && !file.isEditable && (
+																	<span className="bg-yellow-100 text-yellow-700 text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">
+																		Locked
+																	</span>
+																)}
+																{!file.isCloud && file.status !== "CANCELLED" && file.isEditable && (
+																	<span className="bg-green-100 text-green-700 text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">
+																		Editable
+																	</span>
+																)}
 															</div>
 															<span className="text-xs text-slate-400 capitalize">
 																{file.type}
@@ -431,7 +450,7 @@ export function Dashboard() {
 																to={`/${file.type}/${file.id}`}
 																className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-md transition-colors"
 															>
-																View/Edit
+																{(!file.isCloud && (file.status === "CANCELLED" || !file.isEditable)) ? "View Only" : "View/Edit"}
 															</Link>
 														)}
 														<button
