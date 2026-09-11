@@ -297,8 +297,8 @@ export function BillGenerator() {
                 </span>
               </div>
               <div className="meta">
-                <span>No. <span style={{ borderBottom:"2px solid var(--red)", color:"var(--red)", fontWeight:"bold", fontSize:"20px", padding:"0 8px" }}>{billNo}</span></span>
-                <span>Date :- <span style={{borderBottom:'1.5px solid #111', padding:'0 8px'}}>{date}</span></span>
+                <span>No. <span style={{ display:"inline-block", borderBottom:"2px solid var(--red)", color:"var(--red)", fontWeight:"bold", fontSize:"20px", padding:"0 8px", lineHeight:"1" }}>{billNo}</span></span>
+                <span>Date :- <span style={{ display:"inline-block", borderBottom:'1.5px solid #111', padding:'0 8px', lineHeight:"1" }}>{date}</span></span>
               </div>
               <section className="fields" aria-label="Customer details">
                 <div className="field">
@@ -400,7 +400,7 @@ export function BillGenerator() {
         .bill-container .fields { display:grid; gap:12px; margin:0 7px 20px; font-size:18px; font-weight:700; }
         .bill-container .field { display:flex; align-items:end; gap:8px; }
         .bill-container .field .label { white-space:nowrap; }
-        .bill-container .line { flex:1; min-width:0; min-height: 1.2em; border-bottom:1.5px solid var(--ink); display:inline-block; }
+        .bill-container .line { flex:1; min-width:0; min-height: 1.2em; border-bottom:1.5px solid var(--ink); display:block; vertical-align:bottom; }
         .bill-container .line.short { flex:0 0 35%; }
         .bill-container .bill-table { width:100%; border-collapse:collapse; table-layout:fixed; font-size:19px; }
         .bill-container .bill-table th, .bill-container .bill-table td { border:3px solid var(--ink); }
@@ -507,7 +507,7 @@ export function BillGenerator() {
 					}}
 				>
 					<div className="bill-print-grid">
-						<div className="bill-wrapper" ref={docRef}>
+						<div className="bill-wrapper">
 							{renderBill()}
 						</div>
 						<div className="bill-wrapper print-only" aria-hidden="true">
