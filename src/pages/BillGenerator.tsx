@@ -90,28 +90,62 @@ export function BillGenerator() {
 
 	const handleDownloadPDF = async () => {
 		saveSilently();
-		if (!docRef.current) return;
+		const el = document.getElementById('bill-capture') as HTMLElement;
+		if (!el) return;
 		setDownloading(true);
+		
+		const parent = el.closest('.bill-container') as HTMLElement;
+		const origTransform = parent ? parent.style.transform : '';
+		const origOrigin = parent ? parent.style.transformOrigin : '';
+		if (parent) {
+			parent.style.transform = 'none';
+			parent.style.transformOrigin = 'unset';
+		}
+		
+		// Small delay to let browser reflow
+		await new Promise(r => setTimeout(r, 100));
+		
 		try {
-			await downloadAsPDF(docRef.current, `bill_${billNo}.pdf`);
+			await downloadAsPDF(el, `bill_${billNo}.pdf`);
 		} catch (e) {
 			console.error(e);
 			alert("Failed to generate PDF");
 		} finally {
+			if (parent) {
+				parent.style.transform = origTransform;
+				parent.style.transformOrigin = origOrigin;
+			}
 			setDownloading(false);
 		}
 	};
 
 	const handleDownloadJPG = async () => {
 		saveSilently();
-		if (!docRef.current) return;
+		const el = document.getElementById('bill-capture') as HTMLElement;
+		if (!el) return;
 		setDownloading(true);
+		
+		const parent = el.closest('.bill-container') as HTMLElement;
+		const origTransform = parent ? parent.style.transform : '';
+		const origOrigin = parent ? parent.style.transformOrigin : '';
+		if (parent) {
+			parent.style.transform = 'none';
+			parent.style.transformOrigin = 'unset';
+		}
+		
+		// Small delay to let browser reflow
+		await new Promise(r => setTimeout(r, 100));
+		
 		try {
-			await downloadAsJPG(docRef.current, `bill_${billNo}.jpg`);
+			await downloadAsJPG(el, `bill_${billNo}.jpg`);
 		} catch (e) {
 			console.error(e);
 			alert("Failed to generate JPG");
 		} finally {
+			if (parent) {
+				parent.style.transform = origTransform;
+				parent.style.transformOrigin = origOrigin;
+			}
 			setDownloading(false);
 		}
 	};
@@ -279,8 +313,8 @@ export function BillGenerator() {
 	// PREVIEW MODE
 	const previewItems = getItemsForPreview();
 
-	const renderBill = () => (
-		<main className="bill">
+	const renderBill = (isFirst = false) => (
+		<main className="bill" id={isFirst ? "bill-capture" : undefined}>
             {showWatermark && (
               <div className="watermark" aria-hidden="true">
                 <span style={{ whiteSpace: 'pre-wrap' }}>{watermarkText}</span>
@@ -297,8 +331,8 @@ export function BillGenerator() {
                 </span>
               </div>
               <div className="meta">
-                <span>No. <span style={{ display:"inline-block", borderBottom:"2px solid var(--red)", color:"var(--red)", fontWeight:"bold", fontSize:"20px", padding:"0 8px", lineHeight:"1" }}>{billNo}</span></span>
-                <span>Date :- <span style={{ display:"inline-block", borderBottom:'1.5px solid #111', padding:'0 8px', lineHeight:"1" }}>{date}</span></span>
+                <span>No. <span style={{ textDecoration:"underline", textUnderlineOffset:"4px", textDecorationThickness:"2px", color:"var(--red)", fontWeight:"bold", fontSize:"20px", padding:"0 8px" }}>{billNo}</span></span>
+                <span>Date :- <span style={{ textDecoration:"underline", textUnderlineOffset:"4px", textDecorationThickness:"1.5px", padding:"0 8px" }}>{date}</span></span>
               </div>
               <section className="fields" aria-label="Customer details">
                 <div className="field">
@@ -508,7 +542,7 @@ export function BillGenerator() {
 				>
 					<div className="bill-print-grid">
 						<div className="bill-wrapper">
-							{renderBill()}
+							{renderBill(true)}
 						</div>
 						<div className="bill-wrapper print-only" aria-hidden="true">
 							{renderBill()}

@@ -1,5 +1,3 @@
-import html2canvas from "html2canvas";
-import { jsPDF } from "jspdf";
 import { useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import "../components/invoice/Invoice.css";
@@ -114,62 +112,58 @@ export function InvoiceGenerator() {
 
 	const handleDownloadPDF = async () => {
 		autoSave();
-		if (!docRef.current) return;
+		const el = document.getElementById('bill-capture') as HTMLElement;
+		if (!el) return;
 		setDownloading(true);
+		
+		const parent = el.closest('.bill-container') as HTMLElement;
+		const origTransform = parent ? parent.style.transform : '';
+		const origOrigin = parent ? parent.style.transformOrigin : '';
+		if (parent) {
+			parent.style.transform = 'none';
+			parent.style.transformOrigin = 'unset';
+		}
+		
+		await new Promise(r => setTimeout(r, 100));
 		try {
-			const pages = docRef.current.querySelectorAll(".a4-page");
-			const pdf = new jsPDF("p", "mm", "a4");
-
-			for (let i = 0; i < pages.length; i++) {
-				const pageEl = pages[i] as HTMLElement;
-				const noPrintEls = pageEl.querySelectorAll(".no-print");
-				noPrintEls.forEach((el) => ((el as HTMLElement).style.display = "none"));
-
-				const canvas = await html2canvas(pageEl, {
-					scale: 2,
-					useCORS: true,
-					logging: false,
-				});
-
-				noPrintEls.forEach((el) => ((el as HTMLElement).style.display = ""));
-
-				const imgData = canvas.toDataURL("image/jpeg", 0.95);
-				if (i > 0) pdf.addPage();
-				pdf.addImage(imgData, "JPEG", 0, 0, 210, 297);
-			}
-			pdf.save(`invoice_${invoiceNo}.pdf`);
-		} catch (err) {
-			console.error(err);
-			alert("Error generating PDF");
+			await (await import('../utils/downloadHelper')).downloadAsPDF(el, `invoice_${invoiceNo}.pdf`);
+		} catch (e) {
+			console.error(e);
+			alert("Failed to generate PDF");
 		} finally {
+			if (parent) {
+				parent.style.transform = origTransform;
+				parent.style.transformOrigin = origOrigin;
+			}
 			setDownloading(false);
 		}
 	};
 
 	const handleDownloadJPG = async () => {
 		autoSave();
-		if (!docRef.current) return;
+		const el = document.getElementById('bill-capture') as HTMLElement;
+		if (!el) return;
 		setDownloading(true);
+		
+		const parent = el.closest('.bill-container') as HTMLElement;
+		const origTransform = parent ? parent.style.transform : '';
+		const origOrigin = parent ? parent.style.transformOrigin : '';
+		if (parent) {
+			parent.style.transform = 'none';
+			parent.style.transformOrigin = 'unset';
+		}
+		
+		await new Promise(r => setTimeout(r, 100));
 		try {
-			const firstPage = docRef.current.querySelector(".a4-page") as HTMLElement;
-			if (firstPage) {
-				const canvas = await html2canvas(firstPage, {
-					scale: 2,
-					useCORS: true,
-					logging: false,
-				});
-				const dataUrl = canvas.toDataURL("image/jpeg", 0.95);
-				const link = document.createElement("a");
-				link.href = dataUrl;
-				link.download = `invoice_${invoiceNo}.jpg`;
-				document.body.appendChild(link);
-				link.click();
-				document.body.removeChild(link);
-			}
-		} catch (err) {
-			console.error(err);
-			alert("Error generating JPG");
+			await (await import('../utils/downloadHelper')).downloadAsJPG(el, `invoice_${invoiceNo}.jpg`);
+		} catch (e) {
+			console.error(e);
+			alert("Failed to generate JPG");
 		} finally {
+			if (parent) {
+				parent.style.transform = origTransform;
+				parent.style.transformOrigin = origOrigin;
+			}
 			setDownloading(false);
 		}
 	};
