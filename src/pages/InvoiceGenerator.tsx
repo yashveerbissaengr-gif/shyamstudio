@@ -116,10 +116,17 @@ export function InvoiceGenerator() {
 		if (!el) return;
 		setDownloading(true);
 		
+				const rootEl = document.querySelector('.bill-editor-root') as HTMLElement;
+		const origRootBg = rootEl ? rootEl.style.background : '';
+		if (rootEl) rootEl.style.background = '#fff';
+		
 		const parent = el.closest('.bill-container') as HTMLElement;
 		const origTransform = parent ? parent.style.transform : '';
 		const origOrigin = parent ? parent.style.transformOrigin : '';
-		if (parent) {
+					if (rootEl) {
+				rootEl.style.background = origRootBg;
+			}
+			if (parent) {
 			parent.style.transform = 'none';
 			parent.style.transformOrigin = 'unset';
 		}
@@ -131,6 +138,9 @@ export function InvoiceGenerator() {
 			console.error(e);
 			alert("Failed to generate PDF");
 		} finally {
+						if (rootEl) {
+				rootEl.style.background = origRootBg;
+			}
 			if (parent) {
 				parent.style.transform = origTransform;
 				parent.style.transformOrigin = origOrigin;
@@ -145,10 +155,17 @@ export function InvoiceGenerator() {
 		if (!el) return;
 		setDownloading(true);
 		
+				const rootEl = document.querySelector('.bill-editor-root') as HTMLElement;
+		const origRootBg = rootEl ? rootEl.style.background : '';
+		if (rootEl) rootEl.style.background = '#fff';
+		
 		const parent = el.closest('.bill-container') as HTMLElement;
 		const origTransform = parent ? parent.style.transform : '';
 		const origOrigin = parent ? parent.style.transformOrigin : '';
-		if (parent) {
+					if (rootEl) {
+				rootEl.style.background = origRootBg;
+			}
+			if (parent) {
 			parent.style.transform = 'none';
 			parent.style.transformOrigin = 'unset';
 		}
@@ -160,6 +177,9 @@ export function InvoiceGenerator() {
 			console.error(e);
 			alert("Failed to generate JPG");
 		} finally {
+						if (rootEl) {
+				rootEl.style.background = origRootBg;
+			}
 			if (parent) {
 				parent.style.transform = origTransform;
 				parent.style.transformOrigin = origOrigin;

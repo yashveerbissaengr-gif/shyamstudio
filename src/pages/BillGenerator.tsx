@@ -94,10 +94,17 @@ export function BillGenerator() {
 		if (!el) return;
 		setDownloading(true);
 		
+				const rootEl = document.querySelector('.bill-editor-root') as HTMLElement;
+		const origRootBg = rootEl ? rootEl.style.background : '';
+		if (rootEl) rootEl.style.background = '#fff';
+		
 		const parent = el.closest('.bill-container') as HTMLElement;
 		const origTransform = parent ? parent.style.transform : '';
 		const origOrigin = parent ? parent.style.transformOrigin : '';
-		if (parent) {
+					if (rootEl) {
+				rootEl.style.background = origRootBg;
+			}
+			if (parent) {
 			parent.style.transform = 'none';
 			parent.style.transformOrigin = 'unset';
 		}
@@ -111,6 +118,9 @@ export function BillGenerator() {
 			console.error(e);
 			alert("Failed to generate PDF");
 		} finally {
+						if (rootEl) {
+				rootEl.style.background = origRootBg;
+			}
 			if (parent) {
 				parent.style.transform = origTransform;
 				parent.style.transformOrigin = origOrigin;
@@ -125,10 +135,17 @@ export function BillGenerator() {
 		if (!el) return;
 		setDownloading(true);
 		
+				const rootEl = document.querySelector('.bill-editor-root') as HTMLElement;
+		const origRootBg = rootEl ? rootEl.style.background : '';
+		if (rootEl) rootEl.style.background = '#fff';
+		
 		const parent = el.closest('.bill-container') as HTMLElement;
 		const origTransform = parent ? parent.style.transform : '';
 		const origOrigin = parent ? parent.style.transformOrigin : '';
-		if (parent) {
+					if (rootEl) {
+				rootEl.style.background = origRootBg;
+			}
+			if (parent) {
 			parent.style.transform = 'none';
 			parent.style.transformOrigin = 'unset';
 		}
@@ -142,6 +159,9 @@ export function BillGenerator() {
 			console.error(e);
 			alert("Failed to generate JPG");
 		} finally {
+						if (rootEl) {
+				rootEl.style.background = origRootBg;
+			}
 			if (parent) {
 				parent.style.transform = origTransform;
 				parent.style.transformOrigin = origOrigin;
@@ -384,8 +404,8 @@ export function BillGenerator() {
                   <span>Signature<br/><br/>________________</span>
                 </div>
               </footer>
-              <div style={{ background: '#064e3b', color: '#fff', textAlign: 'center', padding: '6px', fontSize: '18px', fontWeight: 'bold', marginTop: '16px', letterSpacing: '0.02em', borderRadius: '4px' }}>
-                We cover all types of photography and videography events”
+              <div style={{ background: '#064e3b', color: '#fff', textAlign: 'center', padding: '12px 20px', fontSize: '24px', fontWeight: '900', marginTop: '24px', letterSpacing: '0.05em', borderRadius: '8px', textTransform: 'uppercase', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+                We cover all types of photography and videography events"
               </div>
             </div>
           </main>
@@ -424,7 +444,7 @@ export function BillGenerator() {
         /* A4 Layout CSS */
         .bill-container { --red:#f10b0b; --ink:#111; --watermark:#c8c8c8; color:var(--ink); font-family:Arial, Helvetica, sans-serif; }
         .bill-container * { box-sizing:border-box; }
-        .bill-container .bill { position:relative; width:8.27in; min-height:11.69in; margin:0 auto; padding:36px 42px 32px; overflow:hidden; background:#fff; box-shadow:0 4px 24px #0002; }
+        .bill-container .bill { position:relative; width:8.27in; min-height:11.69in; margin:0 auto; padding:36px 42px 32px; overflow:hidden; background:#fff; }
         .bill-container .watermark { position:absolute; inset:215px -100px 170px; z-index:0; pointer-events:none; transform:rotate(-24deg); color:var(--watermark); font-family:cursive; font-size:108px; font-weight:700; line-height:1.85; opacity:.2; white-space:nowrap; text-align:center; }
         .bill-container .content { position:relative; z-index:1; }
         .bill-container .brand { margin:0; text-align:center; color:var(--red); font-family:Georgia, "Times New Roman", serif; font-size:45px; line-height:1.15; font-weight:700; }
