@@ -75,7 +75,7 @@ export function InvoiceGenerator() {
 	const [isEditable, setIsEditable] = useState(true);
 	const [status, setStatus] = useState<'ACTIVE' | 'CANCELLED'>('ACTIVE');
 	const isCancelled = status === "CANCELLED";
-	const [createdAt, setCreatedAt] = useState(Date.now());
+	const [createdAt, setCreatedAt] = useState(() => Date.now());
 
 	useEffect(() => {
 		let isMounted = true;
@@ -109,11 +109,6 @@ export function InvoiceGenerator() {
 	// so the full 794px A4 width stays visible instead of getting clipped
 	// to half (which transform:scale + overflow-x:hidden caused on phones).
 	const canvasRef = useRef<HTMLDivElement>(null);
-	const A4_WIDTH_PX = 794; // 210mm at 96dpi
-
-	useEffect(() => {
-		setZoom(100);
-	}, []);
 
 	const autoSave = async () => {
 		if (!isEditable && !isCancelled) return;

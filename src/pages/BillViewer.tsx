@@ -99,11 +99,6 @@ export function BillViewer() {
 		return <div className="text-center py-20 text-gray-500">Bill not found.</div>;
 	}
 
-	// User prefers horizontal scrolling over auto-zooming.
-	useEffect(() => {
-		setZoom(100);
-	}, []);
-
 	const renderBill = (isFirst = false) => (
 		<main className="bill" id={isFirst ? "bill-capture" : undefined}>
 						{bill.showWatermark && (

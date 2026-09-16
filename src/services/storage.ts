@@ -248,7 +248,7 @@ export const storage = {
 						await setDoc(doc(db, "bills", b.id), b);
 					}
 					console.log("Migrated bills to Firestore");
-				} catch (e) {}
+				} catch {}
 			}
 		}
 
@@ -262,7 +262,7 @@ export const storage = {
 						await setDoc(doc(db, "invoices", inv.id), inv);
 					}
 					console.log("Migrated invoices to Firestore");
-				} catch (e) {}
+				} catch {}
 			}
 		}
 
@@ -276,7 +276,7 @@ export const storage = {
 						await setDoc(doc(db, "cloudDocs", d.id), d);
 					}
 					console.log("Migrated cloud docs to Firestore");
-				} catch (e) {}
+				} catch {}
 			}
 		}
 	}

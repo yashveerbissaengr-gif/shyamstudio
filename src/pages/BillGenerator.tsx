@@ -208,10 +208,6 @@ export function BillGenerator() {
 		}
 	};
 
-	useEffect(() => {
-		setZoom(100);
-	}, []);
-
 
 	if (mode === "form") {
 		return (
