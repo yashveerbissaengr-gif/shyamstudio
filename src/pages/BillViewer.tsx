@@ -17,7 +17,7 @@ export function BillViewer() {
 		}
 		return () => { isMounted = false; };
 	}, [id]);
-	const [zoom, setZoom] = useState(100);
+	const [zoom] = useState(100);
 	const [downloading, setDownloading] = useState(false);
 	const docRef = useRef<HTMLDivElement>(null);
 	const canvasRef = useRef<HTMLDivElement>(null);

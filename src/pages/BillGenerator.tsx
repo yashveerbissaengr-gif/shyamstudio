@@ -19,7 +19,7 @@ export function BillGenerator() {
 	// View states
 	const [mode, setMode] = useState<"form" | "preview">("form");
 	const [downloading, setDownloading] = useState(false);
-	const [zoom, setZoom] = useState(100);
+	const [zoom] = useState(100);
 
 	// Form Data
 	const [id] = useState(uid);
