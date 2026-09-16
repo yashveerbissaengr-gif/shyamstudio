@@ -35,7 +35,7 @@ export function BillToolbar({
 				{showWatermark ? "👁 WM" : "🚫 WM"}
 			</button>
 
-			<div style={{ marginLeft: "auto", display: "flex", gap: "8px", alignItems: "center" }}>
+			<div className="desktop-actions" style={{ marginLeft: "auto", display: "flex", gap: "8px", alignItems: "center" }}>
 				{status === 'CANCELLED' && (
 					<span className="bg-red-100 text-red-700 text-xs font-bold px-2 py-1 rounded uppercase tracking-wider">
 						Cancelled

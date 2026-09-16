@@ -112,31 +112,7 @@ export function InvoiceGenerator() {
 	const A4_WIDTH_PX = 794; // 210mm at 96dpi
 
 	useEffect(() => {
-		const computeZoom = () => {
-			const el = canvasRef.current;
-			if (!el) return;
-			const available = el.clientWidth - 16;
-			if (available < A4_WIDTH_PX) {
-				const scale = Math.max(30, Math.floor((available / A4_WIDTH_PX) * 100));
-				setZoom(scale);
-			} else {
-				setZoom(100);
-			}
-		};
-		computeZoom();
-		window.addEventListener("resize", computeZoom);
-		window.addEventListener("orientationchange", computeZoom);
-		// Observe container size changes (e.g. toolbar wrapping, rotation)
-		let observer: ResizeObserver | null = null;
-		if (canvasRef.current && typeof ResizeObserver !== "undefined") {
-			observer = new ResizeObserver(computeZoom);
-			observer.observe(canvasRef.current);
-		}
-		return () => {
-			window.removeEventListener("resize", computeZoom);
-			window.removeEventListener("orientationchange", computeZoom);
-			observer?.disconnect();
-		};
+		setZoom(100);
 	}, []);
 
 	const autoSave = async () => {
@@ -365,13 +341,6 @@ export function InvoiceGenerator() {
 			<div
 				className="inv-canvas"
 				ref={canvasRef}
-				style={{
-					width: "100%",
-					maxWidth: "100%",
-					overflowX: "hidden",
-					display: "flex",
-					justifyContent: "center",
-				}}
 			>
 				<div
 					className="inv-layout-scale"
@@ -464,30 +433,30 @@ export function InvoiceGenerator() {
 				<div className="inv-mobile-dock-grid">
 					<button
 						className="inv-mobile-dock-btn"
-						style={{ background: "#16a34a", color: "#fff" }}
+						style={{ background: "#25D366", color: "#fff" }}
 						onClick={() => handleSendWhatsApp("booking")}
 						title="Send invoice PDF via WhatsApp"
 					>
-						<span style={{ fontSize: "18px" }}>📄</span>
-						<span>Booked</span>
+						<span style={{ fontSize: "18px" }}>💬</span>
+						<span>WA: Booked</span>
 					</button>
 					<button
 						className="inv-mobile-dock-btn"
-						style={{ background: "#059669", color: "#fff" }}
+						style={{ background: "#128C7E", color: "#fff" }}
 						onClick={() => handleSendWhatsApp("completed")}
 						title="Send invoice PDF via WhatsApp"
 					>
-						<span style={{ fontSize: "18px" }}>📄</span>
-						<span>Ready</span>
+						<span style={{ fontSize: "18px" }}>💬</span>
+						<span>WA: Ready</span>
 					</button>
 					<button
 						className="inv-mobile-dock-btn"
-						style={{ background: "#047857", color: "#fff" }}
+						style={{ background: "#075E54", color: "#fff" }}
 						onClick={() => handleSendWhatsApp("collected")}
 						title="Send invoice PDF via WhatsApp"
 					>
-						<span style={{ fontSize: "18px" }}>📄</span>
-						<span>Collected</span>
+						<span style={{ fontSize: "18px" }}>💬</span>
+						<span>WA: Collected</span>
 					</button>
 				</div>
 			</div>

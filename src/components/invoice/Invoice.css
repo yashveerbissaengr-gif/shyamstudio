@@ -32,6 +32,7 @@
 
 /* ── MOBILE: wrap toolbars so Print / PDF / WA are never hidden off-screen ── */
 @media (max-width: 639px) {
+  .desktop-actions { display: none !important; }
   .inv-toolbar {
     flex-wrap: wrap;
     overflow-x: visible;
@@ -72,9 +73,7 @@
   touch-action: pan-x pan-y;
   padding: 16px 8px;
   min-height: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  display: block;
 }
 @media (min-width: 640px) { .inv-canvas { padding: 32px 16px; } }
 

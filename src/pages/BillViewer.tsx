@@ -99,31 +99,9 @@ export function BillViewer() {
 		return <div className="text-center py-20 text-gray-500">Bill not found.</div>;
 	}
 
+	// User prefers horizontal scrolling over auto-zooming.
 	useEffect(() => {
-		const computeZoom = () => {
-			const el = containerRef.current;
-			if (!el) return;
-			const available = el.clientWidth - 16;
-			const scale = Math.min(available / 794, 1);
-			if (scale > 0) {
-				setZoom(Math.max(30, Math.floor(scale * 100)));
-			} else {
-				setZoom(100);
-			}
-		};
-		computeZoom();
-		window.addEventListener("resize", computeZoom);
-		window.addEventListener("orientationchange", computeZoom);
-		let observer: ResizeObserver | null = null;
-		if (containerRef.current && typeof ResizeObserver !== "undefined") {
-			observer = new ResizeObserver(computeZoom);
-			observer.observe(containerRef.current);
-		}
-		return () => {
-			window.removeEventListener("resize", computeZoom);
-			window.removeEventListener("orientationchange", computeZoom);
-			observer?.disconnect();
-		};
+		setZoom(100);
 	}, []);
 
 	const renderBill = (isFirst = false) => (
@@ -333,13 +311,14 @@ export function BillViewer() {
         @media(max-width:639px) {
           .bill-mobile-dock { display:block; }
           .bill-status-bar { display:none !important; }
+          .desktop-actions { display:none !important; }
           .bill-toolbar { flex-wrap:wrap; overflow-x:visible; white-space:normal; row-gap:6px; }
           .bill-toolbar button { min-height:40px; padding:8px 12px; font-size:12px; }
           .bill-toolbar .sep { display:none; }
         }
         .bill-canvas {
           flex:1; overflow:auto; -webkit-overflow-scrolling:touch; touch-action:pan-x pan-y;
-          padding:20px 8px; display:flex; flex-direction:column; align-items:center;
+          padding:20px 8px; display:block; text-align:center;
         }
         @media(min-width:640px) { .bill-canvas { padding:40px 20px; } }
         @media(max-width:639px) { .bill-canvas { padding:8px 4px; } }
@@ -450,7 +429,7 @@ export function BillViewer() {
 				<div className="sep" />
 				
 
-				<div style={{ marginLeft: "auto", display: "flex", gap: "8px", alignItems: "center" }}>
+				<div className="desktop-actions" style={{ marginLeft: "auto", display: "flex", gap: "8px", alignItems: "center" }}>
 					<button onClick={() => window.print()}>🖨 Print</button>
 					
 					{/* 2 Download Options: JPG & PDF */}
@@ -471,13 +450,6 @@ export function BillViewer() {
 			<div
 				className="bill-canvas"
 				ref={containerRef}
-				style={{
-					width: "100%",
-					maxWidth: "100%",
-					overflowX: "hidden",
-					display: "flex",
-					justifyContent: "center",
-				}}
 			>
 				<div
 					ref={canvasRef}
@@ -544,30 +516,30 @@ export function BillViewer() {
 				<div className="bill-mobile-dock-grid">
 					<button
 						className="bill-mobile-dock-btn"
-						style={{ background: "#16a34a", color: "#fff" }}
+						style={{ background: "#25D366", color: "#fff" }}
 						onClick={() => handleSendWhatsApp("booking")}
 						title="Send bill PDF via WhatsApp"
 					>
-						<span style={{ fontSize: "18px" }}>📄</span>
-						<span>Booked</span>
+						<span style={{ fontSize: "18px" }}>💬</span>
+						<span>WA: Booked</span>
 					</button>
 					<button
 						className="bill-mobile-dock-btn"
-						style={{ background: "#059669", color: "#fff" }}
-						onClick={() => handleSendWhatsApp("completed")}
+						style={{ background: "#128C7E", color: "#fff" }}
+						onClick={() => handleSendWhatsApp("ready")}
 						title="Send bill PDF via WhatsApp"
 					>
-						<span style={{ fontSize: "18px" }}>📄</span>
-						<span>Ready</span>
+						<span style={{ fontSize: "18px" }}>💬</span>
+						<span>WA: Ready</span>
 					</button>
 					<button
 						className="bill-mobile-dock-btn"
-						style={{ background: "#047857", color: "#fff" }}
+						style={{ background: "#075E54", color: "#fff" }}
 						onClick={() => handleSendWhatsApp("collected")}
 						title="Send bill PDF via WhatsApp"
 					>
-						<span style={{ fontSize: "18px" }}>📄</span>
-						<span>Collected</span>
+						<span style={{ fontSize: "18px" }}>💬</span>
+						<span>WA: Collected</span>
 					</button>
 				</div>
 			</div>

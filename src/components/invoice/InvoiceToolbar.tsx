@@ -49,13 +49,13 @@ export function InvoiceToolbar({
 
 				<div className="sep" />
 
-				{/* WA Status Buttons — always visible in row 1 */}
-				<span style={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.05em', flexShrink: 0 }}>
+				{/* WA Status Buttons — always visible in row 1 on desktop */}
+				<span className="desktop-actions" style={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.05em', flexShrink: 0 }}>
 					Send:
 				</span>
 				{onWABooked && (
 					<button
-						className="bill-wa-btn"
+						className="bill-wa-btn desktop-actions"
 						style={{ padding: '4px 12px', borderRadius: '999px', fontSize: '11px', fontWeight: 700, flexShrink: 0, minHeight: '28px' }}
 						onClick={onWABooked}
 						title="Send invoice PDF via WhatsApp"
@@ -65,7 +65,7 @@ export function InvoiceToolbar({
 				)}
 				{onWAReady && (
 					<button
-						className="bill-wa-btn"
+						className="bill-wa-btn desktop-actions"
 						style={{ background: '#059669', padding: '4px 12px', borderRadius: '999px', fontSize: '11px', fontWeight: 700, flexShrink: 0, minHeight: '28px' }}
 						onClick={onWAReady}
 						title="Send invoice PDF via WhatsApp"
@@ -75,7 +75,7 @@ export function InvoiceToolbar({
 				)}
 				{onWACollected && (
 					<button
-						className="bill-wa-btn"
+						className="bill-wa-btn desktop-actions"
 						style={{ background: '#047857', padding: '4px 12px', borderRadius: '999px', fontSize: '11px', fontWeight: 700, flexShrink: 0, minHeight: '28px' }}
 						onClick={onWACollected}
 						title="Send invoice PDF via WhatsApp"
@@ -104,7 +104,7 @@ export function InvoiceToolbar({
 				)}
 
 				{isEditable && status !== 'CANCELLED' && (
-					<button className="bill-save-btn" onClick={onSave} style={{ flexShrink: 0 }}>
+					<button className="bill-save-btn desktop-actions" onClick={onSave} style={{ flexShrink: 0 }}>
 						💾 Save
 					</button>
 				)}
@@ -137,9 +137,9 @@ export function InvoiceToolbar({
 				<div className="sep" />
 				<button onClick={onNewDoc} title="New Invoice" style={{ flexShrink: 0 }}>🗋 New</button>
 				<div className="sep" />
-				<button className="bill-print-btn" onClick={onPrint} style={{ flexShrink: 0 }}>🖨 Print</button>
+				<button className="bill-print-btn desktop-actions" onClick={onPrint} style={{ flexShrink: 0 }}>🖨 Print</button>
 				<button
-					className="dl-btn"
+					className="dl-btn desktop-actions"
 					style={{ flexShrink: 0, background: '#2563eb' }}
 					disabled={downloading}
 					onClick={onDownloadPDF}

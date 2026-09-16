@@ -113,6 +113,13 @@ table {
 .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
 
+/* ── Mobile utilities ────────────────────────────────────────────────────────*/
+@media (max-width: 639px) {
+  .desktop-actions {
+    display: none !important;
+  }
+}
+
 /* ── Root fills viewport ─────────────────────────────────────────────────────*/
 #root { min-height: 100dvh; display: flex; flex-direction: column; }
 
