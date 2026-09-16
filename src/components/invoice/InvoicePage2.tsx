@@ -1,4 +1,4 @@
-export function InvoicePage2({ readOnly }: { readOnly?: boolean }) {
+export function InvoicePage2(_props?: { readOnly?: boolean }) {
 	return (
 		<div className="a4-page" style={{ position: "relative" }}>
 			{/* "Agreement" watermark behind Page 2 */}
@@ -48,18 +48,14 @@ export function InvoicePage2({ readOnly }: { readOnly?: boolean }) {
 					].map((term, i) => (
 						<div key={`term-${i}`} className="term-item">
 							<span className="term-num">{i + 1}.</span>
-							<span
-								contentEditable={!readOnly}
-								suppressContentEditableWarning
-								className="term-text"
-							>
+							<span className="term-text">
 								{term}
 							</span>
 						</div>
 					))}
 					<div className="term-item">
 						<span className="term-num">•</span>
-						<span contentEditable={!readOnly} suppressContentEditableWarning className="term-text">
+						<span className="term-text">
 							By confirming the booking and paying the advance, you acknowledge that you have read,
 							understood, and agreed to these terms.
 						</span>

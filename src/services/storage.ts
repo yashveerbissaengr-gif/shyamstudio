@@ -1,3 +1,5 @@
+import { collection, getDocs, doc, setDoc, deleteDoc, getDoc, updateDoc, query, orderBy } from "firebase/firestore";
+import { db } from "../firebase";
 import type { BillData, InvoiceData } from "../types/invoice";
 
 const STORAGE_KEY_BILLS = "shyam_bills_v1";
@@ -15,25 +17,36 @@ export interface CloudDoc {
 }
 
 export const storage = {
-	getAllBills: (): BillData[] => {
+	getAllBills: async (): Promise<BillData[]> => {
 		try {
-			const data = localStorage.getItem(STORAGE_KEY_BILLS);
-			if (data) {
-				return JSON.parse(data) as BillData[];
+			const q = query(collection(db, "bills"), orderBy("createdAt", "desc"));
+			const querySnapshot = await getDocs(q);
+			const bills: BillData[] = [];
+			querySnapshot.forEach((doc) => {
+				bills.push(doc.data() as BillData);
+			});
+			return bills;
+		} catch (e) {
+			console.error("Failed to load bills from cloud", e);
+			return [];
+		}
+	},
+
+	getBillById: async (id: string): Promise<BillData | undefined> => {
+		try {
+			const docRef = doc(db, "bills", id);
+			const docSnap = await getDoc(docRef);
+			if (docSnap.exists()) {
+				return docSnap.data() as BillData;
 			}
 		} catch (e) {
-			console.error("Failed to load bills", e);
+			console.error("Failed to get bill", e);
 		}
-		return [];
+		return undefined;
 	},
 
-	getBillById: (id: string): BillData | undefined => {
-		const bills = storage.getAllBills();
-		return bills.find((b) => b.id === id);
-	},
-
-	canEditBill: (id: string): boolean => {
-		const bills = storage.getAllBills();
+	canEditBill: async (id: string): Promise<boolean> => {
+		const bills = await storage.getAllBills();
 		const target = bills.find((b) => b.id === id);
 		if (!target) return true; // new bill
 		
@@ -52,43 +65,40 @@ export const storage = {
 		return targetNum >= max;
 	},
 
-	cancelBill: (id: string) => {
-		const bills = storage.getAllBills();
-		const index = bills.findIndex((b) => b.id === id);
-		if (index >= 0) {
-			bills[index].status = 'CANCELLED';
-			localStorage.setItem(STORAGE_KEY_BILLS, JSON.stringify(bills));
+	cancelBill: async (id: string): Promise<void> => {
+		try {
+			const docRef = doc(db, "bills", id);
+			await updateDoc(docRef, { status: "CANCELLED" });
+		} catch (e) {
+			console.error("Failed to cancel bill", e);
 		}
 	},
 
-	saveBill: (bill: BillData) => {
-		const bills = storage.getAllBills();
-		const index = bills.findIndex((b) => b.id === bill.id);
-		
-		if (index >= 0) {
-			if (!storage.canEditBill(bill.id)) {
-				throw new Error("LOCKED_INVOICE");
-			}
-			bills[index] = bill;
-		} else {
-			bills.push(bill);
+	saveBill: async (bill: BillData): Promise<void> => {
+		const canEdit = await storage.canEditBill(bill.id);
+		if (!canEdit) {
+			throw new Error("LOCKED_INVOICE");
 		}
-		// Sort by createdAt descending
-		bills.sort((a, b) => b.createdAt - a.createdAt);
-		localStorage.setItem(STORAGE_KEY_BILLS, JSON.stringify(bills));
+		try {
+			await setDoc(doc(db, "bills", bill.id), bill);
+		} catch (e) {
+			console.error("Failed to save bill", e);
+			throw e;
+		}
 	},
 
-	deleteBill: (id: string) => {
-		const bills = storage.getAllBills();
-		const filtered = bills.filter((b) => b.id !== id);
-		localStorage.setItem(STORAGE_KEY_BILLS, JSON.stringify(filtered));
+	deleteBill: async (id: string): Promise<void> => {
+		try {
+			await deleteDoc(doc(db, "bills", id));
+		} catch (e) {
+			console.error("Failed to delete bill", e);
+		}
 	},
 
-	getNextBillNumber: (): string => {
-		const bills = storage.getAllBills();
+	getNextBillNumber: async (): Promise<string> => {
+		const bills = await storage.getAllBills();
 		if (bills.length === 0) return "0001";
 
-		// Find highest bill number
 		let max = 0;
 		for (const bill of bills) {
 			const match = bill.billNo.match(/\d+/);
@@ -100,25 +110,36 @@ export const storage = {
 		return String(max + 1).padStart(4, "0");
 	},
 
-	getAllInvoices: (): InvoiceData[] => {
+	getAllInvoices: async (): Promise<InvoiceData[]> => {
 		try {
-			const data = localStorage.getItem(STORAGE_KEY_INVOICES);
-			if (data) {
-				return JSON.parse(data) as InvoiceData[];
+			const q = query(collection(db, "invoices"), orderBy("createdAt", "desc"));
+			const querySnapshot = await getDocs(q);
+			const invoices: InvoiceData[] = [];
+			querySnapshot.forEach((doc) => {
+				invoices.push(doc.data() as InvoiceData);
+			});
+			return invoices;
+		} catch (e) {
+			console.error("Failed to load invoices from cloud", e);
+			return [];
+		}
+	},
+
+	getInvoiceById: async (id: string): Promise<InvoiceData | undefined> => {
+		try {
+			const docRef = doc(db, "invoices", id);
+			const docSnap = await getDoc(docRef);
+			if (docSnap.exists()) {
+				return docSnap.data() as InvoiceData;
 			}
 		} catch (e) {
-			console.error("Failed to load invoices", e);
+			console.error("Failed to get invoice", e);
 		}
-		return [];
+		return undefined;
 	},
 
-	getInvoiceById: (id: string): InvoiceData | undefined => {
-		const invoices = storage.getAllInvoices();
-		return invoices.find((inv) => inv.id === id);
-	},
-
-	canEditInvoice: (id: string): boolean => {
-		const invoices = storage.getAllInvoices();
+	canEditInvoice: async (id: string): Promise<boolean> => {
+		const invoices = await storage.getAllInvoices();
 		const target = invoices.find((inv) => inv.id === id);
 		if (!target) return true;
 		
@@ -137,39 +158,38 @@ export const storage = {
 		return targetNum >= max;
 	},
 
-	cancelInvoice: (id: string) => {
-		const invoices = storage.getAllInvoices();
-		const index = invoices.findIndex((inv) => inv.id === id);
-		if (index >= 0) {
-			invoices[index].status = 'CANCELLED';
-			localStorage.setItem(STORAGE_KEY_INVOICES, JSON.stringify(invoices));
+	cancelInvoice: async (id: string): Promise<void> => {
+		try {
+			const docRef = doc(db, "invoices", id);
+			await updateDoc(docRef, { status: "CANCELLED" });
+		} catch (e) {
+			console.error("Failed to cancel invoice", e);
 		}
 	},
 
-	saveInvoice: (invoice: InvoiceData) => {
-		const invoices = storage.getAllInvoices();
-		const index = invoices.findIndex((inv) => inv.id === invoice.id);
-		
-		if (index >= 0) {
-			if (!storage.canEditInvoice(invoice.id)) {
-				throw new Error("LOCKED_INVOICE");
-			}
-			invoices[index] = invoice;
-		} else {
-			invoices.push(invoice);
+	saveInvoice: async (invoice: InvoiceData): Promise<void> => {
+		const canEdit = await storage.canEditInvoice(invoice.id);
+		if (!canEdit) {
+			throw new Error("LOCKED_INVOICE");
 		}
-		invoices.sort((a, b) => b.createdAt - a.createdAt);
-		localStorage.setItem(STORAGE_KEY_INVOICES, JSON.stringify(invoices));
+		try {
+			await setDoc(doc(db, "invoices", invoice.id), invoice);
+		} catch (e) {
+			console.error("Failed to save invoice", e);
+			throw e;
+		}
 	},
 
-	deleteInvoice: (id: string) => {
-		const invoices = storage.getAllInvoices();
-		const filtered = invoices.filter((inv) => inv.id !== id);
-		localStorage.setItem(STORAGE_KEY_INVOICES, JSON.stringify(filtered));
+	deleteInvoice: async (id: string): Promise<void> => {
+		try {
+			await deleteDoc(doc(db, "invoices", id));
+		} catch (e) {
+			console.error("Failed to delete invoice", e);
+		}
 	},
 
-	getNextInvoiceNumber: (): string => {
-		const invoices = storage.getAllInvoices();
+	getNextInvoiceNumber: async (): Promise<string> => {
+		const invoices = await storage.getAllInvoices();
 		if (invoices.length === 0) return "0001";
 
 		let max = 0;
@@ -183,28 +203,81 @@ export const storage = {
 		return String(max + 1).padStart(4, "0");
 	},
 
-	getAllCloudDocs: (): CloudDoc[] => {
+	getAllCloudDocs: async (): Promise<CloudDoc[]> => {
 		try {
-			const data = localStorage.getItem(STORAGE_KEY_CLOUD_DOCS);
-			if (data) {
-				return JSON.parse(data) as CloudDoc[];
-			}
+			const q = query(collection(db, "cloudDocs"), orderBy("uploadedAt", "desc"));
+			const querySnapshot = await getDocs(q);
+			const docs: CloudDoc[] = [];
+			querySnapshot.forEach((doc) => {
+				docs.push(doc.data() as CloudDoc);
+			});
+			return docs;
 		} catch (e) {
 			console.error("Failed to load cloud docs", e);
+			return [];
 		}
-		return [];
 	},
 
-	saveCloudDoc: (doc: CloudDoc) => {
-		const docs = storage.getAllCloudDocs();
-		docs.unshift(doc);
-		localStorage.setItem(STORAGE_KEY_CLOUD_DOCS, JSON.stringify(docs));
+	saveCloudDoc: async (docData: CloudDoc): Promise<void> => {
+		try {
+			await setDoc(doc(db, "cloudDocs", docData.id), docData);
+		} catch (e) {
+			console.error("Failed to save cloud doc", e);
+			throw e;
+		}
 	},
 
-	deleteCloudDoc: (id: string) => {
-		const docs = storage.getAllCloudDocs();
-		const filtered = docs.filter((d) => d.id !== id);
-		localStorage.setItem(STORAGE_KEY_CLOUD_DOCS, JSON.stringify(filtered));
+	deleteCloudDoc: async (id: string): Promise<void> => {
+		try {
+			await deleteDoc(doc(db, "cloudDocs", id));
+		} catch (e) {
+			console.error("Failed to delete cloud doc", e);
+		}
 	},
+
+	migrateLocalData: async (): Promise<void> => {
+		// Only run migration once if Firestore has NO bills/invoices/docs
+		// First check bills
+		const existingBills = await storage.getAllBills();
+		if (existingBills.length === 0) {
+			const localBillsStr = localStorage.getItem(STORAGE_KEY_BILLS);
+			if (localBillsStr) {
+				try {
+					const localBills = JSON.parse(localBillsStr) as BillData[];
+					for (const b of localBills) {
+						await setDoc(doc(db, "bills", b.id), b);
+					}
+					console.log("Migrated bills to Firestore");
+				} catch (e) {}
+			}
+		}
+
+		const existingInvoices = await storage.getAllInvoices();
+		if (existingInvoices.length === 0) {
+			const localInvoicesStr = localStorage.getItem(STORAGE_KEY_INVOICES);
+			if (localInvoicesStr) {
+				try {
+					const localInvoices = JSON.parse(localInvoicesStr) as InvoiceData[];
+					for (const inv of localInvoices) {
+						await setDoc(doc(db, "invoices", inv.id), inv);
+					}
+					console.log("Migrated invoices to Firestore");
+				} catch (e) {}
+			}
+		}
+
+		const existingDocs = await storage.getAllCloudDocs();
+		if (existingDocs.length === 0) {
+			const localDocsStr = localStorage.getItem(STORAGE_KEY_CLOUD_DOCS);
+			if (localDocsStr) {
+				try {
+					const localDocs = JSON.parse(localDocsStr) as CloudDoc[];
+					for (const d of localDocs) {
+						await setDoc(doc(db, "cloudDocs", d.id), d);
+					}
+					console.log("Migrated cloud docs to Firestore");
+				} catch (e) {}
+			}
+		}
+	}
 };
-

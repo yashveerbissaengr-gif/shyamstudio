@@ -89,6 +89,32 @@ table {
 
 @media print {
   /* Override global Tailwind containers that might have dark backgrounds */
-  .bg-ink { background-color: transparent !important; }
+  .bg-ink { background-color: #fff !important; }
   .text-paper { color: #000000 !important; }
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    background-color: #fff !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+  #root, main {
+    display: block !important;
+    min-height: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
 }
+
+/* ── No-scrollbar utility ────────────────────────────────────────────────────*/
+.no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* ── Root fills viewport ─────────────────────────────────────────────────────*/
+#root { min-height: 100dvh; display: flex; flex-direction: column; }
+
+/* ── Safe-area insets for notch / gesture-bar phones ──────────────────────── */
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom, 8px); }

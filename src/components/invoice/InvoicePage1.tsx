@@ -33,6 +33,7 @@ const PREDEFINED_FNS = [
 interface InvoicePage1Props {
 	invoiceNo: string;
 	date: string;
+	setDate?: React.Dispatch<React.SetStateAction<string>>;
 	customerName: string;
 	setCustomerName?: React.Dispatch<React.SetStateAction<string>>;
 	customerMobile: string;
@@ -56,6 +57,7 @@ const rupees = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 export function InvoicePage1({
 	invoiceNo,
 	date,
+	setDate,
 	customerName,
 	setCustomerName,
 	customerMobile,
@@ -115,7 +117,18 @@ export function InvoicePage1({
 						<span>Date</span>
 					</b>
 					&nbsp;
-					<span>{date}</span>
+					{readOnly ? (
+						<span>{date}</span>
+					) : (
+						<span
+							className="editable-line"
+							contentEditable
+							suppressContentEditableWarning
+							onBlur={(e) => setDate?.(e.currentTarget.innerText)}
+						>
+							{date}
+						</span>
+					)}
 				</div>
 			</div>
 
@@ -128,7 +141,7 @@ export function InvoicePage1({
 						</td>
 						<td>
 							{readOnly ? (
-								<span>{customerName}</span>
+								<span>{customerName || "\u00A0"}</span>
 							) : (
 								<input
 									className="doc-input"
@@ -145,7 +158,7 @@ export function InvoicePage1({
 						</td>
 						<td>
 							{readOnly ? (
-								<span>{customerMobile}</span>
+								<span>{customerMobile || "\u00A0"}</span>
 							) : (
 								<input
 									className="doc-input"
@@ -237,48 +250,38 @@ export function InvoicePage1({
 									{(["time", "fn", "date", "venue"] as const).map((f) => (
 										<td key={f}>
 											{f === "fn" ? (
-												<input
-													list="fn-options"
-													className="doc-input"
-													value={row[f]}
-													onChange={(e) =>
-														setSchedule?.((prev) =>
-															prev.map((r) => (r.id === row.id ? { ...r, fn: e.target.value } : r)),
-														)
-													}
-													placeholder="Select or type..."
-													aria-label="Function name"
-													readOnly={readOnly}
-												/>
+												readOnly ? (
+													<span>{row[f] || "\u00A0"}</span>
+												) : (
+													<input
+														list="fn-options"
+														className="doc-input"
+														value={row[f]}
+														onChange={(e) =>
+															setSchedule?.((prev) =>
+																prev.map((r) => (r.id === row.id ? { ...r, fn: e.target.value } : r)),
+															)
+														}
+														placeholder="Select or type..."
+														aria-label="Function name"
+													/>
+												)
 											) : f === "time" ? (
-												<input
-													type="time"
-													className="doc-input"
-													value={row[f]}
-													onChange={(e) =>
-														setSchedule?.((prev) =>
-															prev.map((r) => (r.id === row.id ? { ...r, time: e.target.value } : r)),
-														)
-													}
-													onKeyDown={(e) => e.preventDefault()}
-													readOnly={readOnly}
-												/>
-											) : f === "date" ? (
-												<input
-													type="date"
-													className="doc-input"
-													value={row[f] ? row[f].split("/").reverse().join("-") : ""}
-													onChange={(e) => {
-														const val = e.target.value;
-														const [y, m, d] = val.split("-");
-														const formatted = val ? `${d}/${m}/${y}` : "";
-														setSchedule?.((prev) =>
-															prev.map((r) => (r.id === row.id ? { ...r, date: formatted } : r)),
-														);
-													}}
-													onKeyDown={(e) => e.preventDefault()}
-													readOnly={readOnly}
-												/>
+												readOnly ? (
+													<span>{row[f] || "\u00A0"}</span>
+												) : (
+													<input
+														type="time"
+														className="doc-input"
+														value={row[f]}
+														onChange={(e) =>
+															setSchedule?.((prev) =>
+																prev.map((r) => (r.id === row.id ? { ...r, time: e.target.value } : r)),
+															)
+														}
+														onKeyDown={(e) => e.preventDefault()}
+													/>
+												)
 											) : (
 												<span
 													contentEditable={!readOnly}

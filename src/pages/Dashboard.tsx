@@ -7,7 +7,6 @@ import {
 	Loader2,
 	PlusCircle,
 	Search,
-	Trash2,
 	Upload,
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
@@ -19,38 +18,48 @@ import { storage } from "../services/storage";
 export function Dashboard() {
 	const [files, setFiles] = useState<any[]>([]);
 	const [searchTerm, setSearchTerm] = useState("");
+	const [isLoading, setIsLoading] = useState(true);
 	const [filter, setFilter] = useState<"all" | "bill" | "invoice">("all");
 	const [isUploading, setIsUploading] = useState(false);
 	const [uploadDocType, setUploadDocType] = useState<"bill" | "invoice">("bill");
 	const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
 	const [uploadError, setUploadError] = useState<string | null>(null);
 
-	const loadFiles = () => {
-		const bills = storage.getAllBills().map((b) => ({
-			id: b.id,
-			name: `Bill_${b.billNo}_${b.customerName || "Customer"}.pdf`,
-			size: "Local",
-			date: new Date(b.createdAt).toISOString(),
-			type: "bill",
-			isCloud: false,
-			url: null,
-			status: b.status || 'ACTIVE',
-			isEditable: storage.canEditBill(b.id)
-		}));
+	const loadFiles = async () => {
+		const rawBills = await storage.getAllBills();
+		const bills = [];
+		for (const b of rawBills) {
+			bills.push({
+				id: b.id,
+				name: `Bill_${b.billNo}_${b.customerName || "Customer"}.pdf`,
+				size: "Cloud",
+				date: new Date(b.createdAt).toISOString(),
+				type: "bill",
+				isCloud: false,
+				url: null,
+				status: b.status || 'ACTIVE',
+				isEditable: await storage.canEditBill(b.id)
+			});
+		}
 
-		const invoices = storage.getAllInvoices().map((i) => ({
-			id: i.id,
-			name: `Invoice_${i.invoiceNo}_${i.customerName || "Customer"}.pdf`,
-			size: "Local",
-			date: new Date(i.createdAt).toISOString(),
-			type: "invoice",
-			isCloud: false,
-			url: null,
-			status: i.status || 'ACTIVE',
-			isEditable: storage.canEditInvoice(i.id)
-		}));
+		const rawInvoices = await storage.getAllInvoices();
+		const invoices = [];
+		for (const i of rawInvoices) {
+			invoices.push({
+				id: i.id,
+				name: `Invoice_${i.invoiceNo}_${i.customerName || "Customer"}.pdf`,
+				size: "Cloud",
+				date: new Date(i.createdAt).toISOString(),
+				type: "invoice",
+				isCloud: false,
+				url: null,
+				status: i.status || 'ACTIVE',
+				isEditable: await storage.canEditInvoice(i.id)
+			});
+		}
 
-		const cloudDocs = storage.getAllCloudDocs().map((d) => ({
+		const rawCloudDocs = await storage.getAllCloudDocs();
+		const cloudDocs = rawCloudDocs.map((d) => ({
 			id: d.id,
 			name: d.name,
 			size: d.size,
@@ -66,10 +75,24 @@ export function Dashboard() {
 		setFiles(all);
 	};
 
+	const [error, setError] = useState<string | null>(null);
+
 	useEffect(() => {
-		loadFiles();
-		window.addEventListener("storage", loadFiles);
-		return () => window.removeEventListener("storage", loadFiles);
+		let isMounted = true;
+		const init = async () => {
+			if (isMounted) setIsLoading(true);
+			try {
+				await storage.migrateLocalData(); // Run one-time migration if needed
+				await loadFiles();
+			} catch (e: any) {
+				console.error("Dashboard loading error:", e);
+				if (isMounted) setError(e.message || "Failed to load dashboard data. Check Firebase permissions.");
+			} finally {
+				if (isMounted) setIsLoading(false);
+			}
+		};
+		init();
+		return () => { isMounted = false; };
 	}, []);
 
 	const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -118,18 +141,28 @@ export function Dashboard() {
 		return matchesSearch && matchesFilter;
 	});
 
-	const handleDelete = (id: string, type: string, isCloud: boolean) => {
-		if (window.confirm(`Are you sure you want to delete this ${type}? This action cannot be undone.`)) {
-			if (isCloud) {
-				storage.deleteCloudDoc(id);
-			} else if (type === "bill") {
-				storage.deleteBill(id);
-			} else if (type === "invoice") {
-				storage.deleteInvoice(id);
-			}
-			loadFiles();
-		}
-	};
+	if (isLoading) {
+		return (
+			<div className="flex h-screen flex-col items-center justify-center bg-gray-50">
+				{error ? (
+					<div className="text-xl text-red-600 font-semibold mb-4">Error loading dashboard</div>
+				) : (
+					<div className="text-xl text-gray-500 font-semibold">Loading Dashboard...</div>
+				)}
+				{error && <p className="text-gray-600 max-w-md text-center">{error}</p>}
+			</div>
+		);
+	}
+
+	if (error) {
+		return (
+			<div className="flex h-screen flex-col items-center justify-center bg-gray-50">
+				<div className="text-xl text-red-600 font-semibold mb-4">Error loading dashboard</div>
+				<p className="text-gray-600 max-w-md text-center">{error}</p>
+				<p className="mt-4 text-sm text-gray-500">Please make sure Firestore Database is enabled in your Firebase Console and security rules allow read/write access.</p>
+			</div>
+		);
+	}
 
 	return (
 		<div className="min-h-screen bg-slate-50 text-slate-900 font-sans pb-12">
@@ -453,13 +486,6 @@ export function Dashboard() {
 																{(!file.isCloud && (file.status === "CANCELLED" || !file.isEditable)) ? "View Only" : "View/Edit"}
 															</Link>
 														)}
-														<button
-															onClick={() => handleDelete(file.id, file.type, file.isCloud)}
-															className="inline-flex items-center gap-1.5 text-sm font-medium text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-md transition-colors"
-															title="Delete"
-														>
-															<Trash2 size={14} />
-														</button>
 													</div>
 												</td>
 											</tr>

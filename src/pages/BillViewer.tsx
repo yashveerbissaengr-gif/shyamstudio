@@ -1,16 +1,27 @@
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, type CSSProperties } from "react";
 import { Link, useParams } from "react-router-dom";
 import { storage } from "../services/storage";
 import type { BillData } from "../types/invoice";
-import { downloadAsJPG, downloadAsPDF } from "../utils/downloadHelper";
+import { downloadAsJPG, downloadAsPDF, buildPDFFromElement, sharePDFViaWhatsApp, shareOrDownloadBlob, openWhatsAppChat } from "../utils/downloadHelper";
 
 export function BillViewer() {
 	const { id } = useParams();
-	const [bill] = useState<BillData | null>(() => (id ? storage.getBillById(id) || null : null));
-	const [zoom, setZoom] = useState(85);
+	const [bill, setBill] = useState<BillData | null>(null);
+
+	useEffect(() => {
+		let isMounted = true;
+		if (id) {
+			storage.getBillById(id).then(b => {
+				if (isMounted && b) setBill(b);
+			});
+		}
+		return () => { isMounted = false; };
+	}, [id]);
+	const [zoom, setZoom] = useState(100);
 	const [downloading, setDownloading] = useState(false);
 	const docRef = useRef<HTMLDivElement>(null);
 	const canvasRef = useRef<HTMLDivElement>(null);
+	const containerRef = useRef<HTMLDivElement>(null);
 
 	const handleDownloadJPG = async () => {
 		if (!docRef.current || !bill) return;
@@ -38,7 +49,7 @@ export function BillViewer() {
 		}
 	};
 
-	const handleSendWhatsApp = (type: 'booking' | 'completed' | 'collected') => {
+	const handleSendWhatsApp = async (type: 'booking' | 'ready' | 'completed' | 'collected') => {
 		if (!bill) return;
 		let targetMobile = bill.customerMobile;
 		if (!targetMobile) {
@@ -46,21 +57,42 @@ export function BillViewer() {
 			if (!input) return;
 			targetMobile = input;
 		}
-		const cleanMobile = targetMobile.replace(/\D/g, "");
-		
+
 		const itemsList = bill.items.map(item => `- ${item.desc} - ₹${item.amount || 0}`).join('\n');
-		
+
 		let message = "";
 		if (type === 'booking') {
 			message = `Dear Customer,\nShyam photo studio Thank's You\nFor Booking:\n${itemsList}\nYour Job ID is: ${bill.billNo}\nDATE : ${bill.date}`;
-		} else if (type === 'completed') {
+		} else if (type === 'ready' || type === 'completed') {
 			message = `Dear Customer,\nYour Job ID : ${bill.billNo}\nIs completed Please Collect Your Job\nBalance Amt : ${bill.balance}\nFrom Shyam photo studio`;
 		} else if (type === 'collected') {
 			message = `Dear Customer,\nThank You For Successfully Collected Your Job\nJob Code : ${bill.billNo}\nFrom Shyam photo studio`;
 		}
-		const encoded = encodeURIComponent(message);
-		const url = `https://wa.me/${cleanMobile}?text=${encoded}`;
-		window.open(url, "_blank");
+
+		// Direct PDF send: generate the bill PDF, then share FILE + message.
+		if (!canvasRef.current) {
+			openWhatsAppChat(targetMobile, message);
+			return;
+		}
+		const filename = `bill_${bill.billNo}.pdf`;
+		setDownloading(true);
+		try {
+			const pdfBlob = await buildPDFFromElement(canvasRef.current);
+			const shared = await sharePDFViaWhatsApp(pdfBlob, filename, message);
+			if (!shared) {
+				await shareOrDownloadBlob(pdfBlob, filename);
+				openWhatsAppChat(targetMobile, message);
+			}
+		} catch (e) {
+			console.error("Failed to send bill PDF via WhatsApp:", e);
+			try {
+				openWhatsAppChat(targetMobile, message);
+			} catch {
+				/* ignore */
+			}
+		} finally {
+			setDownloading(false);
+		}
 	};
 
 	if (!bill) {
@@ -68,27 +100,34 @@ export function BillViewer() {
 	}
 
 	useEffect(() => {
-		const observer = new ResizeObserver((entries) => {
-			for (let entry of entries) {
-				const { width, height } = entry.contentRect;
-				const scaleX = (width - 40) / 794;
-				const scaleY = (height - 80) / 1122;
-				const scale = Math.min(scaleX, scaleY, 1);
-				if (scale > 0) {
-					setZoom(Math.floor(scale * 100));
-				} else {
-					setZoom(100);
-				}
+		const computeZoom = () => {
+			const el = containerRef.current;
+			if (!el) return;
+			const available = el.clientWidth - 16;
+			const scale = Math.min(available / 794, 1);
+			if (scale > 0) {
+				setZoom(Math.max(30, Math.floor(scale * 100)));
+			} else {
+				setZoom(100);
 			}
-		});
-		if (canvasRef.current) {
-			observer.observe(canvasRef.current);
+		};
+		computeZoom();
+		window.addEventListener("resize", computeZoom);
+		window.addEventListener("orientationchange", computeZoom);
+		let observer: ResizeObserver | null = null;
+		if (containerRef.current && typeof ResizeObserver !== "undefined") {
+			observer = new ResizeObserver(computeZoom);
+			observer.observe(containerRef.current);
 		}
-		return () => observer.disconnect();
+		return () => {
+			window.removeEventListener("resize", computeZoom);
+			window.removeEventListener("orientationchange", computeZoom);
+			observer?.disconnect();
+		};
 	}, []);
 
-	const renderBill = () => (
-		<main className="bill">
+	const renderBill = (isFirst = false) => (
+		<main className="bill" id={isFirst ? "bill-capture" : undefined}>
 						{bill.showWatermark && (
 							<div className="watermark" aria-hidden="true">
 								<span style={{ whiteSpace: "pre-wrap" }}>{bill.watermarkText}</span>
@@ -270,12 +309,45 @@ export function BillViewer() {
         .bill-dl-btn:hover { background:#a00 !important; }
         .bill-wa-btn { background:#16a34a !important; color:#fff !important; }
         .bill-wa-btn:hover { background:#15803d !important; }
-        .bill-canvas { flex:1; overflow-y:auto; padding:40px 20px; }
+        .bill-status-bar {
+          display: flex; align-items: center; gap: 8px; padding: 8px 16px;
+          background: #111827; color: #fff; flex-shrink: 0; flex-wrap: wrap;
+          border-bottom: 1px solid #374151; font-size: 13px; font-weight: 600;
+        }
+        .bill-status-bar .status-label { margin-right: 4px; color: #d1d5db; }
+        .bill-status-bar .bill-status-btn {
+          border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;
+          font-size: 13px; font-weight: 600; transition: opacity .15s;
+        }
+        .bill-status-bar .bill-status-btn:hover { opacity: 0.9; }
+        /* Mobile bottom dock — always visible on phones */
+        .bill-mobile-dock {
+          display:none; position:sticky; bottom:0; z-index:30;
+          background:#fff; border-top:1px solid #e2e8f0;
+          padding:8px 8px calc(8px + env(safe-area-inset-bottom, 0px)); box-shadow:0 -4px 12px rgba(0,0,0,.08);
+        }
+        .bill-mobile-dock-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+        .bill-mobile-dock-grid + .bill-mobile-dock-grid { margin-top:6px; }
+        .bill-mobile-dock-btn { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:10px 4px; border:none; border-radius:8px; cursor:pointer; font-size:11px; font-weight:700; gap:3px; min-height:52px; }
+        .bill-mobile-dock-btn:disabled { opacity:.6; }
+        @media(max-width:639px) {
+          .bill-mobile-dock { display:block; }
+          .bill-status-bar { display:none !important; }
+          .bill-toolbar { flex-wrap:wrap; overflow-x:visible; white-space:normal; row-gap:6px; }
+          .bill-toolbar button { min-height:40px; padding:8px 12px; font-size:12px; }
+          .bill-toolbar .sep { display:none; }
+        }
+        .bill-canvas {
+          flex:1; overflow:auto; -webkit-overflow-scrolling:touch; touch-action:pan-x pan-y;
+          padding:20px 8px; display:flex; flex-direction:column; align-items:center;
+        }
+        @media(min-width:640px) { .bill-canvas { padding:40px 20px; } }
+        @media(max-width:639px) { .bill-canvas { padding:8px 4px; } }
 
-        /* A4 Layout CSS */
-        .bill-container { --red:#f10b0b; --ink:#111; --watermark:#c8c8c8; color:var(--ink); font-family:Arial, Helvetica, sans-serif; }
+        /* A4 Layout CSS — fixed 794px kept on phones, scaled with zoom */
+        .bill-container { --red:#f10b0b; --ink:#111; --watermark:#c8c8c8; color:var(--ink); font-family:Arial, Helvetica, sans-serif; width:794px; max-width:none; flex-shrink:0; margin:0 auto; }
         .bill-container * { box-sizing:border-box; }
-        .bill-container .bill { position:relative; width:8.27in; min-height:11.69in; margin:0 auto; padding:36px 42px 32px; overflow:hidden; background:#fff; box-shadow:0 4px 24px #0002; }
+        .bill-container .bill { position:relative; width:794px; max-width:none; min-height:11.69in; margin:0 auto; padding:36px 42px 32px; overflow:hidden; background:#fff; box-shadow:0 4px 24px #0002; }
         .bill-container .watermark { position:absolute; inset:215px -100px 170px; z-index:0; pointer-events:none; transform:rotate(-24deg); color:var(--watermark); font-family:cursive; font-size:108px; font-weight:700; line-height:1.85; opacity:.9; white-space:nowrap; text-align:center; }
         .bill-container .content { position:relative; z-index:1; }
         .bill-container .brand { margin:0; text-align:center; color:var(--red); font-family:Georgia, "Times New Roman", serif; font-size:45px; line-height:1.15; font-weight:700; }
@@ -308,10 +380,10 @@ export function BillViewer() {
 
         @media print {
           @page { size: A4 portrait; margin: 5mm; }
-          .bill-toolbar { display:none !important; }
+          .bill-toolbar, .bill-mobile-dock, .bill-status-bar { display:none !important; }
           .bill-editor-root { height:auto; background:none; }
           .bill-canvas { padding:0; overflow:visible; }
-          .bill-container { transform: none !important; width: 210mm !important; height: 148.5mm !important; }
+          .bill-container { transform: none !important; zoom: 1 !important; width: 210mm !important; height: 148.5mm !important; }
           .bill-container .bill { margin:0; box-shadow:none; }
           .bill-print-grid {
             display: flex !important;
@@ -346,23 +418,31 @@ export function BillViewer() {
       `}</style>
 
 			{/* TOOLBAR */}
-			<div className="no-print" style={{
-				position: "fixed",
-				top: "100px",
-				right: "20px",
-				display: "flex",
-				flexDirection: "column",
-				gap: "10px",
-				zIndex: 9999,
-			}}>
-				<button className="bill-wa-btn" style={{ boxShadow: "0 4px 6px rgba(0,0,0,0.2)", padding: "12px 20px", borderRadius: "8px", fontWeight: "bold", fontSize: "15px" }} onClick={() => handleSendWhatsApp('booking')} title="Send Booking WA">
-					💬 Booked
+			<div className="bill-status-bar no-print">
+				<span className="status-label">Send PDF via WA:</span>
+				<button
+					className="bill-status-btn"
+					style={{ background: "#f59e0b", color: "#fff" }}
+					onClick={() => handleSendWhatsApp("booking")}
+					title="Send PDF - Booked"
+				>
+					📄 Booked
 				</button>
-				<button className="bill-wa-btn" style={{ background: '#059669', boxShadow: "0 4px 6px rgba(0,0,0,0.2)", padding: "12px 20px", borderRadius: "8px", fontWeight: "bold", fontSize: "15px" }} onClick={() => handleSendWhatsApp('completed')} title="Send Ready WA">
-					💬 Ready
+				<button
+					className="bill-status-btn"
+					style={{ background: "#3b82f6", color: "#fff" }}
+					onClick={() => handleSendWhatsApp("ready")}
+					title="Send PDF - Ready"
+				>
+					📸 Ready
 				</button>
-				<button className="bill-wa-btn" style={{ background: '#047857', boxShadow: "0 4px 6px rgba(0,0,0,0.2)", padding: "12px 20px", borderRadius: "8px", fontWeight: "bold", fontSize: "15px" }} onClick={() => handleSendWhatsApp('collected')} title="Send Collected WA">
-					💬 Collected
+				<button
+					className="bill-status-btn"
+					style={{ background: "#10b981", color: "#fff" }}
+					onClick={() => handleSendWhatsApp("collected")}
+					title="Send PDF - Collected"
+				>
+					✅ Collected
 				</button>
 			</div>
 			<div className="bill-toolbar">
@@ -388,24 +468,107 @@ export function BillViewer() {
 			</div>
 
 			{/* CANVAS */}
-			<div className="bill-canvas" ref={canvasRef}>
+			<div
+				className="bill-canvas"
+				ref={containerRef}
+				style={{
+					width: "100%",
+					maxWidth: "100%",
+					overflowX: "hidden",
+					display: "flex",
+					justifyContent: "center",
+				}}
+			>
 				<div
-					ref={docRef}
-					className="bill-container"
+					ref={canvasRef}
+					className="bill-layout-scale"
 					style={{
-						transform: `scale(${zoom / 100})`,
-						transformOrigin: "top center",
-						transition: "transform .2s",
-					}}
+						position: "relative",
+						width: `${794 * (zoom / 100)}px`,
+						height: `${1122 * (zoom / 100)}px`
+					} as CSSProperties}
 				>
-					<div className="bill-print-grid">
-						<div className="bill-wrapper">
-							{renderBill()}
-						</div>
-						<div className="bill-wrapper print-only" aria-hidden="true">
-							{renderBill()}
+					<div
+						ref={docRef}
+						className="bill-container"
+						style={{
+							position: "absolute",
+							top: 0,
+							left: 0,
+							transform: `scale(${zoom / 100})`,
+							transformOrigin: "top left",
+						} as CSSProperties}
+					>
+						<div className="bill-print-grid">
+							<div className="bill-wrapper">
+								{renderBill(true)}
+							</div>
+							<div className="bill-wrapper print-only" aria-hidden="true">
+								{renderBill()}
+							</div>
 						</div>
 					</div>
+				</div>
+			</div>
+
+			{/* MOBILE BOTTOM DOCK — always visible on phones */}
+			<div className="bill-mobile-dock no-print">
+				<div className="bill-mobile-dock-grid">
+					<button
+						className="bill-mobile-dock-btn"
+						style={{ background: "#f1f5f9", color: "#334155" }}
+						onClick={() => window.print()}
+					>
+						<span style={{ fontSize: "18px" }}>🖨</span>
+						<span>Print</span>
+					</button>
+					<button
+						className="bill-mobile-dock-btn"
+						style={{ background: "#eff6ff", color: "#1d4ed8" }}
+						disabled={downloading}
+						onClick={handleDownloadJPG}
+					>
+						<span style={{ fontSize: "18px" }}>🖼️</span>
+						<span>{downloading ? "⏳" : "JPG"}</span>
+					</button>
+					<button
+						className="bill-mobile-dock-btn"
+						style={{ background: "#fef2f2", color: "#b91c1c" }}
+						disabled={downloading}
+						onClick={handleDownloadPDF}
+					>
+						<span style={{ fontSize: "18px" }}>📄</span>
+						<span>{downloading ? "⏳" : "PDF"}</span>
+					</button>
+				</div>
+				<div className="bill-mobile-dock-grid">
+					<button
+						className="bill-mobile-dock-btn"
+						style={{ background: "#16a34a", color: "#fff" }}
+						onClick={() => handleSendWhatsApp("booking")}
+						title="Send bill PDF via WhatsApp"
+					>
+						<span style={{ fontSize: "18px" }}>📄</span>
+						<span>Booked</span>
+					</button>
+					<button
+						className="bill-mobile-dock-btn"
+						style={{ background: "#059669", color: "#fff" }}
+						onClick={() => handleSendWhatsApp("completed")}
+						title="Send bill PDF via WhatsApp"
+					>
+						<span style={{ fontSize: "18px" }}>📄</span>
+						<span>Ready</span>
+					</button>
+					<button
+						className="bill-mobile-dock-btn"
+						style={{ background: "#047857", color: "#fff" }}
+						onClick={() => handleSendWhatsApp("collected")}
+						title="Send bill PDF via WhatsApp"
+					>
+						<span style={{ fontSize: "18px" }}>📄</span>
+						<span>Collected</span>
+					</button>
 				</div>
 			</div>
 		</div>

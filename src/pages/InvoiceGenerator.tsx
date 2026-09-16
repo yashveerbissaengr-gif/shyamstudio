@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect, type CSSProperties } from "react";
 import { useParams } from "react-router-dom";
 import "../components/invoice/Invoice.css";
 import { InvoicePage1 } from "../components/invoice/InvoicePage1";
@@ -7,6 +7,7 @@ import { InvoicePage3 } from "../components/invoice/InvoicePage3";
 import { InvoiceToolbar } from "../components/invoice/InvoiceToolbar";
 import { storage } from "../services/storage";
 import type { PaymentMethod, Row, ScheduleRow } from "../types/invoice";
+import { downloadMultiPagePDFFromNodes, shareOrDownloadBlob, buildPDFFromNodes, sharePDFViaWhatsApp, openWhatsAppChat } from "../utils/downloadHelper";
 
 const uid = () => Math.random().toString(36).substring(2, 9);
 
@@ -53,31 +54,94 @@ const defaultPaymentMethods: PaymentMethod[] = [
 
 export function InvoiceGenerator() {
 	const { id: routeId } = useParams();
-	const existing = routeId ? storage.getInvoiceById(routeId) : null;
-
-	const [id, setId] = useState(() => existing?.id || crypto.randomUUID());
-	const [invoiceNo, setInvoiceNo] = useState(() => existing?.invoiceNo || storage.getNextInvoiceNumber());
-	const [date, setDate] = useState(() => existing?.date || new Date().toLocaleDateString("en-GB"));
-	const [customerName, setCustomerName] = useState(existing?.customerName || "");
-	const [customerMobile, setCustomerMobile] = useState(existing?.customerMobile || "");
+	
+	const [id, setId] = useState<string>(() => crypto.randomUUID());
+	const [invoiceNo, setInvoiceNo] = useState("");
+	const [date, setDate] = useState(() => new Date().toLocaleDateString("en-GB"));
+	const [customerName, setCustomerName] = useState("");
+	const [customerMobile, setCustomerMobile] = useState("");
 
 	const [zoom, setZoom] = useState(100);
-	const [items, setItems] = useState<Row[]>(existing?.items || defaultItems);
-	const [schedule, setSchedule] = useState<ScheduleRow[]>(existing?.schedule || defaultSchedule);
+	const [items, setItems] = useState<Row[]>(defaultItems);
+	const [schedule, setSchedule] = useState<ScheduleRow[]>(defaultSchedule);
 	const [showSchedule, setShowSchedule] = useState(true);
-	const [payMethods, setPayMethods] = useState<PaymentMethod[]>(existing?.payMethods || defaultPaymentMethods);
+	const [payMethods, setPayMethods] = useState<PaymentMethod[]>(defaultPaymentMethods);
 	const [showPaymentMethod, setShowPaymentMethod] = useState(true);
 	const [showServiceDetails, setShowServiceDetails] = useState(true);
 	const [downloading, setDownloading] = useState(false);
+	const [isExporting, setIsExporting] = useState(false);
 	const docRef = useRef<HTMLDivElement>(null);
 
-	const isEditable = storage.canEditInvoice(id);
-	const status = existing?.status || 'ACTIVE';
+	const [isEditable, setIsEditable] = useState(true);
+	const [status, setStatus] = useState<'ACTIVE' | 'CANCELLED'>('ACTIVE');
 	const isCancelled = status === "CANCELLED";
+	const [createdAt, setCreatedAt] = useState(Date.now());
 
-	const autoSave = () => {
+	useEffect(() => {
+		let isMounted = true;
+		const init = async () => {
+			if (routeId) {
+				const existing = await storage.getInvoiceById(routeId);
+				if (existing && isMounted) {
+					setId(existing.id);
+					setInvoiceNo(existing.invoiceNo);
+					setDate(existing.date);
+					setCustomerName(existing.customerName);
+					setCustomerMobile(existing.customerMobile);
+					setItems(existing.items);
+					setSchedule(existing.schedule);
+					setPayMethods(existing.payMethods);
+					setStatus(existing.status || 'ACTIVE');
+					setCreatedAt(existing.createdAt);
+					const editable = await storage.canEditInvoice(existing.id);
+					setIsEditable(editable);
+				}
+			} else {
+				const nextNo = await storage.getNextInvoiceNumber();
+				if (isMounted) setInvoiceNo(nextNo);
+			}
+		};
+		init();
+		return () => { isMounted = false; };
+	}, [routeId]);
+
+	// Auto-zoom to fit viewport on mobile — uses CSS `zoom` (layout-aware)
+	// so the full 794px A4 width stays visible instead of getting clipped
+	// to half (which transform:scale + overflow-x:hidden caused on phones).
+	const canvasRef = useRef<HTMLDivElement>(null);
+	const A4_WIDTH_PX = 794; // 210mm at 96dpi
+
+	useEffect(() => {
+		const computeZoom = () => {
+			const el = canvasRef.current;
+			if (!el) return;
+			const available = el.clientWidth - 16;
+			if (available < A4_WIDTH_PX) {
+				const scale = Math.max(30, Math.floor((available / A4_WIDTH_PX) * 100));
+				setZoom(scale);
+			} else {
+				setZoom(100);
+			}
+		};
+		computeZoom();
+		window.addEventListener("resize", computeZoom);
+		window.addEventListener("orientationchange", computeZoom);
+		// Observe container size changes (e.g. toolbar wrapping, rotation)
+		let observer: ResizeObserver | null = null;
+		if (canvasRef.current && typeof ResizeObserver !== "undefined") {
+			observer = new ResizeObserver(computeZoom);
+			observer.observe(canvasRef.current);
+		}
+		return () => {
+			window.removeEventListener("resize", computeZoom);
+			window.removeEventListener("orientationchange", computeZoom);
+			observer?.disconnect();
+		};
+	}, []);
+
+	const autoSave = async () => {
 		if (!isEditable && !isCancelled) return;
-		storage.saveInvoice({
+		await storage.saveInvoice({
 			id,
 			invoiceNo,
 			date,
@@ -86,17 +150,15 @@ export function InvoiceGenerator() {
 			items,
 			schedule,
 			payMethods,
-			createdAt: existing?.createdAt || Date.now(),
-			status: status
+			createdAt,
+			status
 		});
 	};
 
-	// Removed auto-save useEffect to prevent accidental saving of blank documents
-
-	const recalcItem = (id: string, field: keyof Row, val: string) => {
+	const recalcItem = (rowId: string, field: keyof Row, val: string) => {
 		setItems((prev) =>
 			prev.map((r) => {
-				if (r.id !== id) return r;
+				if (r.id !== rowId) return r;
 				const nextR = { ...r, [field]: val };
 				if (field === "qty" || field === "rate") {
 					const q = parseFloat(nextR.qty) || 0;
@@ -110,102 +172,100 @@ export function InvoiceGenerator() {
 
 	const subtotal = items.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0);
 
-	const handleDownloadPDF = async () => {
-		autoSave();
-		const el = document.getElementById('bill-capture') as HTMLElement;
-		if (!el) return;
-		setDownloading(true);
-		
-				const rootEl = document.querySelector('.bill-editor-root') as HTMLElement;
-		const origRootBg = rootEl ? rootEl.style.background : '';
-		if (rootEl) rootEl.style.background = '#fff';
-		
-		const parent = el.closest('.bill-container') as HTMLElement;
-		const origTransform = parent ? parent.style.transform : '';
-		const origOrigin = parent ? parent.style.transformOrigin : '';
-					if (rootEl) {
-				rootEl.style.background = origRootBg;
-			}
-			if (parent) {
-			parent.style.transform = 'none';
-			parent.style.transformOrigin = 'unset';
-		}
-		
-		await new Promise(r => setTimeout(r, 100));
+	const handleDownloadPDF = async (isPrint = false, printWindow: Window | null = null) => {
 		try {
-			await (await import('../utils/downloadHelper')).downloadAsPDF(el, `invoice_${invoiceNo}.pdf`);
+			await autoSave();
 		} catch (e) {
 			console.error(e);
-			alert("Failed to generate PDF");
-		} finally {
-						if (rootEl) {
-				rootEl.style.background = origRootBg;
-			}
-			if (parent) {
-				parent.style.transform = origTransform;
-				parent.style.transformOrigin = origOrigin;
-			}
-			setDownloading(false);
 		}
-	};
+		const el = docRef.current;
+		if (!el) {
+			if (printWindow) printWindow.close();
+			return;
+		}
 
-	const handleDownloadJPG = async () => {
-		autoSave();
-		const el = document.getElementById('bill-capture') as HTMLElement;
-		if (!el) return;
 		setDownloading(true);
-		
-				const rootEl = document.querySelector('.bill-editor-root') as HTMLElement;
-		const origRootBg = rootEl ? rootEl.style.background : '';
-		if (rootEl) rootEl.style.background = '#fff';
-		
-		const parent = el.closest('.bill-container') as HTMLElement;
-		const origTransform = parent ? parent.style.transform : '';
-		const origOrigin = parent ? parent.style.transformOrigin : '';
-					if (rootEl) {
-				rootEl.style.background = origRootBg;
-			}
-			if (parent) {
-			parent.style.transform = 'none';
-			parent.style.transformOrigin = 'unset';
-		}
-		
-		await new Promise(r => setTimeout(r, 100));
+		setIsExporting(true);
+
+		// Let contentEditable fields settle into read-only render
+		await new Promise((r) => setTimeout(r, 150));
+
 		try {
-			await (await import('../utils/downloadHelper')).downloadAsJPG(el, `invoice_${invoiceNo}.jpg`);
-		} catch (e) {
-			console.error(e);
-			alert("Failed to generate JPG");
+
+			// Capture each A4 page node directly — html-to-image clones the node
+			// itself, so phone viewport width / scroll / zoom can't clip it to half.
+			const pages = Array.from(el.querySelectorAll<HTMLElement>(".a4-page"));
+			if (pages.length === 0) throw new Error("No pages found");
+
+			if (isPrint === true) {
+				const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+				if (isMobile) {
+					// On phones `window.open(blobURL)` printing is unreliable —
+					// generate the PDF and hand it to the native Share sheet so the
+					// user can save / print the FULL layout from their phone.
+					if (printWindow) printWindow.close();
+					const pdfBlob = await buildPDFFromNodes(pages);
+					await shareOrDownloadBlob(pdfBlob, `Invoice_${invoiceNo}.pdf`);
+				} else if (printWindow) {
+					const { jsPDF } = await import("jspdf");
+					const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+					const { toJpeg } = await import("html-to-image");
+					try {
+						await document.fonts?.ready;
+					} catch {
+						/* ignore */
+					}
+					for (let i = 0; i < pages.length; i++) {
+						const dataUrl = await toJpeg(pages[i], {
+							quality: 0.92,
+							pixelRatio: 2,
+							backgroundColor: "#ffffff",
+							cacheBust: true,
+						});
+						if (i > 0) pdf.addPage("a4", "portrait");
+						pdf.addImage(dataUrl, "JPEG", 0, 0, 210, 297);
+					}
+					pdf.autoPrint({ variant: "non-conform" });
+					printWindow.location.href = pdf.output("bloburl").toString();
+				} else {
+					await downloadMultiPagePDFFromNodes(pages, `Invoice_${invoiceNo}.pdf`);
+				}
+			} else {
+				if (printWindow) printWindow.close();
+				await downloadMultiPagePDFFromNodes(pages, `Invoice_${invoiceNo}.pdf`);
+			}
+		} catch (error) {
+			console.error("Error generating PDF:", error);
+			if (printWindow) printWindow.close();
+			// Fallback to print
+			try {
+				window.print();
+			} catch {
+				alert("Failed to generate PDF. Please try Print instead.");
+			}
 		} finally {
-						if (rootEl) {
-				rootEl.style.background = origRootBg;
-			}
-			if (parent) {
-				parent.style.transform = origTransform;
-				parent.style.transformOrigin = origOrigin;
-			}
+			setIsExporting(false);
 			setDownloading(false);
 		}
 	};
 
 	const handleSendWhatsApp = async (type: 'booking' | 'completed' | 'collected') => {
-		autoSave();
+		try {
+			await autoSave();
+		} catch (e) {
+			console.error(e);
+		}
 		let targetMobile = customerMobile;
 		if (!targetMobile) {
 			const input = prompt("Please enter the customer's WhatsApp number:");
 			if (!input) return;
 			targetMobile = input;
 		}
-		
-		let cleanMobile = targetMobile.replace(/\D/g, "");
-		if (cleanMobile.length === 10) {
-			cleanMobile = "91" + cleanMobile; // Assume India if 10 digits
-		}
-		
+
 		const subTotal = items.reduce((acc, row) => acc + (parseFloat(row.amount) || 0), 0);
 		const totalStr = subTotal.toString();
 		const itemsList = items.map(item => `- ${item.desc} - ₹${item.amount || 0}`).join('\n');
-		
+
 		let message = "";
 		if (type === 'booking') {
 			message = `Dear Customer,\nShyam photo studio Thank's You\nFor Booking:\n${itemsList}\nYour Job ID is: ${invoiceNo}\nDATE : ${date}`;
@@ -215,30 +275,44 @@ export function InvoiceGenerator() {
 			message = `Dear Customer,\nThank You For Successfully Collected Your Job\nJob Code : ${invoiceNo}\nFrom Shyam photo studio`;
 		}
 
-		const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-		
-		// Open new tab immediately to prevent browser popup blockers on desktop
-		let waWindow: Window | null = null;
-		if (!isMobile) {
-			waWindow = window.open('about:blank', '_blank');
-		}
-
-		const encoded = encodeURIComponent(message);
-		const waUrl = `https://wa.me/${cleanMobile}?text=${encoded}`;
-		
-		if (isMobile) {
-			window.location.href = waUrl;
-		} else if (waWindow) {
-			waWindow.location.href = waUrl;
-		} else {
-			window.open(waUrl, "_blank");
+		// Direct PDF send: generate the full invoice PDF, then hand the FILE +
+		// message to the system Share sheet so the user picks WhatsApp and the
+		// PDF arrives attached. Falls back to text-only chat + download.
+		const filename = `Invoice_${invoiceNo}.pdf`;
+		setDownloading(true);
+		setIsExporting(true);
+		try {
+			await new Promise((r) => setTimeout(r, 150));
+			const el = docRef.current;
+			if (!el) throw new Error("Invoice not ready");
+			const pages = Array.from(el.querySelectorAll<HTMLElement>(".a4-page"));
+			if (pages.length === 0) throw new Error("No pages found");
+			const pdfBlob = await buildPDFFromNodes(pages);
+			const shared = await sharePDFViaWhatsApp(pdfBlob, filename, message);
+			if (!shared) {
+				// Desktop / no file-share support: download PDF so it can be
+				// attached manually, then open the customer chat with the text.
+				await shareOrDownloadBlob(pdfBlob, filename);
+				openWhatsAppChat(targetMobile, message);
+			}
+		} catch (e) {
+			console.error("Failed to send invoice PDF via WhatsApp:", e);
+			try {
+				openWhatsAppChat(targetMobile, message);
+			} catch {
+				/* ignore */
+			}
+		} finally {
+			setIsExporting(false);
+			setDownloading(false);
 		}
 	};
 
-	const onNewDoc = () => {
+	const onNewDoc = async () => {
 		if (window.confirm("Clear all data and start new?")) {
 			setId(crypto.randomUUID());
-			setInvoiceNo(storage.getNextInvoiceNumber());
+			const nextNo = await storage.getNextInvoiceNumber();
+			setInvoiceNo(nextNo);
 			setDate(new Date().toLocaleDateString("en-GB"));
 			setCustomerName("");
 			setCustomerMobile("");
@@ -258,57 +332,70 @@ export function InvoiceGenerator() {
 				minHeight: "100vh",
 				background: "#f0f2f5",
 				fontFamily: '"Inter", sans-serif',
+				display: "flex",
+				flexDirection: "column",
 			}}
 		>
-				<div className="no-print" style={{
-					position: "fixed",
-					top: "100px",
-					right: "20px",
-					display: "flex",
-					flexDirection: "column",
-					gap: "10px",
-					zIndex: 9999,
-				}}>
-					<button className="bill-wa-btn" style={{ boxShadow: "0 4px 6px rgba(0,0,0,0.2)", padding: "12px 20px", borderRadius: "8px", fontWeight: "bold", fontSize: "15px" }} onClick={() => handleSendWhatsApp('booking')} title="Send Booking WA">
-						💬 Booked
-					</button>
-					<button className="bill-wa-btn" style={{ background: '#059669', boxShadow: "0 4px 6px rgba(0,0,0,0.2)", padding: "12px 20px", borderRadius: "8px", fontWeight: "bold", fontSize: "15px" }} onClick={() => handleSendWhatsApp('completed')} title="Send Ready WA">
-						💬 Ready
-					</button>
-					<button className="bill-wa-btn" style={{ background: '#047857', boxShadow: "0 4px 6px rgba(0,0,0,0.2)", padding: "12px 20px", borderRadius: "8px", fontWeight: "bold", fontSize: "15px" }} onClick={() => handleSendWhatsApp('collected')} title="Send Collected WA">
-						💬 Collected
-					</button>
-				</div>
+			{/* TOOLBAR: Row 1 = Dashboard + WA buttons, Row 2 = formatting + zoom + downloads */}
 			<InvoiceToolbar
 				zoom={zoom}
 				setZoom={setZoom}
 				onNewDoc={onNewDoc}
-				onSave={() => {
-					autoSave();
+				onSave={async () => {
+					await autoSave();
 					alert("Invoice saved successfully!");
 				}}
-				onPrint={() => {
-					autoSave();
-					window.print();
+			onPrint={async () => {
+					await autoSave();
+					const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+					if (isMobile) {
+						handleDownloadPDF(true, null);
+					} else {
+						const w = window.open("about:blank", "_blank");
+						handleDownloadPDF(true, w);
+					}
 				}}
-				onDownloadPDF={handleDownloadPDF}
-				onDownloadJPG={handleDownloadJPG}
+				onDownloadPDF={() => handleDownloadPDF(false)}
 				downloading={downloading}
+				onWABooked={() => handleSendWhatsApp('booking')}
+				onWAReady={() => handleSendWhatsApp('completed')}
+				onWACollected={() => handleSendWhatsApp('collected')}
 			/>
 
-			<div className="inv-canvas">
+			<div
+				className="inv-canvas"
+				ref={canvasRef}
+				style={{
+					width: "100%",
+					maxWidth: "100%",
+					overflowX: "hidden",
+					display: "flex",
+					justifyContent: "center",
+				}}
+			>
 				<div
-					className="doc-wrapper"
-					ref={docRef}
+					className="inv-layout-scale"
 					style={{
-						transform: `scale(${zoom / 100})`,
-						transformOrigin: "top center",
-						transition: "transform 0.2s ease",
-					}}
+						position: "relative",
+						width: `${794 * (zoom / 100)}px`,
+						height: `${3406 * (zoom / 100)}px`,
+					} as CSSProperties}
 				>
+					<div
+						className="doc-wrapper"
+						ref={docRef}
+						style={{
+							position: "absolute",
+							top: 0,
+							left: 0,
+							transform: `scale(${zoom / 100})`,
+							transformOrigin: "top left",
+						} as CSSProperties}
+					>
 					<InvoicePage1
 						invoiceNo={invoiceNo}
 						date={date}
+						setDate={setDate}
 						customerName={customerName}
 						setCustomerName={setCustomerName}
 						customerMobile={customerMobile}
@@ -324,15 +411,84 @@ export function InvoiceGenerator() {
 						recalcItem={recalcItem}
 						subtotal={subtotal}
 						uid={uid}
+						readOnly={isExporting}
 					/>
-					<InvoicePage2 />
+					<InvoicePage2 readOnly={isExporting} />
 					<InvoicePage3
 						showPaymentMethod={showPaymentMethod}
 						setShowPaymentMethod={setShowPaymentMethod}
 						payMethods={payMethods}
 						setPayMethods={setPayMethods}
 						uid={uid}
+						readOnly={isExporting}
 					/>
+				</div>
+				</div>
+			</div>
+
+			{/* MOBILE BOTTOM DOCK — always visible on phones: Print / PDF + 3 WhatsApp */}
+			<div className="inv-mobile-dock no-print">
+				<div className="inv-mobile-dock-grid">
+					<button
+						className="inv-mobile-dock-btn"
+						style={{ background: "#f1f5f9", color: "#334155" }}
+						onClick={async () => {
+							await autoSave();
+							handleDownloadPDF(true, null);
+						}}
+					>
+						<span style={{ fontSize: "18px" }}>🖨</span>
+						<span>Print</span>
+					</button>
+					<button
+						className="inv-mobile-dock-btn"
+						style={{ background: "#fef2f2", color: "#b91c1c" }}
+						disabled={downloading}
+						onClick={() => handleDownloadPDF(false)}
+					>
+						<span style={{ fontSize: "18px" }}>📄</span>
+						<span>{downloading ? "⏳" : "PDF"}</span>
+					</button>
+					<button
+						className="inv-mobile-dock-btn"
+						style={{ background: "#0f766e", color: "#fff" }}
+						onClick={async () => {
+							await autoSave();
+							alert("Invoice saved successfully!");
+						}}
+					>
+						<span style={{ fontSize: "18px" }}>💾</span>
+						<span>Save</span>
+					</button>
+				</div>
+				<div className="inv-mobile-dock-grid">
+					<button
+						className="inv-mobile-dock-btn"
+						style={{ background: "#16a34a", color: "#fff" }}
+						onClick={() => handleSendWhatsApp("booking")}
+						title="Send invoice PDF via WhatsApp"
+					>
+						<span style={{ fontSize: "18px" }}>📄</span>
+						<span>Booked</span>
+					</button>
+					<button
+						className="inv-mobile-dock-btn"
+						style={{ background: "#059669", color: "#fff" }}
+						onClick={() => handleSendWhatsApp("completed")}
+						title="Send invoice PDF via WhatsApp"
+					>
+						<span style={{ fontSize: "18px" }}>📄</span>
+						<span>Ready</span>
+					</button>
+					<button
+						className="inv-mobile-dock-btn"
+						style={{ background: "#047857", color: "#fff" }}
+						onClick={() => handleSendWhatsApp("collected")}
+						title="Send invoice PDF via WhatsApp"
+					>
+						<span style={{ fontSize: "18px" }}>📄</span>
+						<span>Collected</span>
+					</button>
 				</div>
 			</div>
 		</div>

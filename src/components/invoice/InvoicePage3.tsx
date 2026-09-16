@@ -16,7 +16,6 @@ export function InvoicePage3({
 	payMethods,
 	setPayMethods,
 	uid,
-	readOnly,
 }: InvoicePage3Props) {
 	return (
 		<div className="a4-page">
@@ -135,9 +134,7 @@ export function InvoicePage3({
 								<span>{l}</span>
 							</td>
 							<td>
-								<span contentEditable={!readOnly} suppressContentEditableWarning>
-									{v}
-								</span>
+								<span>{v}</span>
 							</td>
 						</tr>
 					))}

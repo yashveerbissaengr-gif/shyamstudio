@@ -58,9 +58,9 @@ export function BillForm({
 	onPreview,
 }: BillFormProps) {
 	return (
-		<div className="max-w-4xl mx-auto p-6 bg-white shadow-md my-8 rounded-lg font-sans text-gray-900">
-			<h2 className="text-2xl font-bold mb-6 text-slate-800">Create New Bill</h2>
-			<div className="grid grid-cols-2 gap-6 mb-6">
+		<div className="max-w-4xl mx-auto p-3 sm:p-6 bg-white shadow-md my-4 sm:my-8 rounded-lg font-sans text-gray-900">
+			<h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-slate-800">Create New Bill</h2>
+			<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
 				<div>
 					<label className="block text-sm font-medium text-gray-700 mb-1">Bill No (Auto)</label>
 					<input
@@ -81,7 +81,7 @@ export function BillForm({
 				</div>
 			</div>
 
-			<div className="grid grid-cols-2 gap-6 mb-6">
+			<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
 				<div>
 					<label className="block text-sm font-medium text-gray-700 mb-1">Customer Name</label>
 					<input
@@ -220,7 +220,7 @@ export function BillForm({
 				></textarea>
 			</div>
 
-			<div className="grid grid-cols-5 gap-4 mb-8 border-t pt-4">
+			<div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4 mb-6 sm:mb-8 border-t pt-4">
 				<div>
 					<label className="block text-sm font-medium text-gray-700 mb-1">Sub Total</label>
 					<div className="text-xl font-bold text-slate-600">₹{subTotal}</div>
