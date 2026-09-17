@@ -44,11 +44,19 @@ export function BillGenerator() {
 	}, []);
 
 	// Predefined Items logic
-	const [billItems, setBillItems] = useState<Array<{ id: string; option: string; description: string; quantity: string; amount: string }>>([]);
+	const [billItems, setBillItems] = useState<Array<{ id: string; option: string; description: string; quantity: string; rate: string; amount: string }>>([]);
 	const [isItemsExpanded, setIsItemsExpanded] = useState(false);
 
+	const getLineTotal = (item: { quantity: string; rate: string; amount: string }) => {
+		const parsedAmount = parseFloat(item.amount);
+		if (!isNaN(parsedAmount) && item.amount !== "") return parsedAmount;
+		const q = parseFloat(item.quantity) || 0;
+		const r = parseFloat(item.rate) || 0;
+		return q * r;
+	};
+
 	const calculateSubTotal = () => {
-		return billItems.reduce((acc, item) => acc + (parseFloat(item.amount) || 0), 0);
+		return billItems.reduce((acc, item) => acc + getLineTotal(item), 0);
 	};
 
 	const subTotal = calculateSubTotal();
@@ -59,13 +67,14 @@ export function BillGenerator() {
 		return billItems.map((item, index) => {
 			const customDesc = item.description || "";
 			const desc = item.option === "Other (Custom)" ? customDesc : customDesc ? `${item.option} - ${customDesc}` : item.option;
+			const lineTotal = getLineTotal(item);
 			return {
 				id: item.id,
 				sr: String(index + 1),
 				desc: desc,
 				qty: item.quantity || "1",
-				rate: "",
-				amount: item.amount || "0",
+				rate: item.rate || "",
+				amount: String(lineTotal || 0),
 			};
 		});
 	};
@@ -154,7 +163,7 @@ export function BillGenerator() {
 			targetMobile = input;
 		}
 
-		const itemsList = billItems.map(item => `- ${item.option} ${item.description ? `(${item.description})` : ''} - ₹${item.amount || 0}`).join('\n');
+		const itemsList = billItems.map(item => `- ${item.option} ${item.description ? `(${item.description})` : ''} (Qty ${item.quantity || 1} x ₹${item.rate || getLineTotal(item)}) = ₹${getLineTotal(item)}`).join('\n');
 
 		let message = "";
 		if (type === 'booking') {
@@ -294,7 +303,7 @@ export function BillGenerator() {
                       {previewItems.map(row => <div key={row.id}>{row.qty}</div>)}
                     </td>
                     <td style={{ padding: '8px 4px', textAlign: 'center' }}>
-                      {/* Rate column left empty as per standard requested usage or could be computed */}
+                      {previewItems.map(row => <div key={row.id}>{row.rate}</div>)}
                     </td>
                     <td style={{ padding: '8px 4px', textAlign: 'center' }}>
                       {previewItems.map(row => <div key={row.id}>{row.amount}</div>)}

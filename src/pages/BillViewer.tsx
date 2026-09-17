@@ -210,7 +210,9 @@ export function BillViewer() {
 											))}
 										</td>
 										<td style={{ padding: "8px 4px", textAlign: "center" }}>
-											{/* Rate left blank intentionally */}
+											{bill.items.map((row) => (
+												<div key={row.id}>{row.rate}</div>
+											))}
 										</td>
 										<td style={{ padding: "8px 4px", textAlign: "center" }}>
 											{bill.items.map((row) => (

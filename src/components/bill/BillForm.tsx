@@ -19,8 +19,8 @@ interface BillFormProps {
 	setCustomerAddress: (v: string) => void;
 	isItemsExpanded: boolean;
 	setIsItemsExpanded: (v: boolean) => void;
-	billItems: Array<{ id: string; option: string; description: string; quantity: string; amount: string }>;
-	setBillItems: React.Dispatch<React.SetStateAction<Array<{ id: string; option: string; description: string; quantity: string; amount: string }>>>;
+	billItems: Array<{ id: string; option: string; description: string; quantity: string; rate: string; amount: string }>;
+	setBillItems: React.Dispatch<React.SetStateAction<Array<{ id: string; option: string; description: string; quantity: string; rate: string; amount: string }>>>;
 	details: string;
 	setDetails: (v: string) => void;
 	subTotal: number;
@@ -170,15 +170,42 @@ export function BillForm({
 										/>
 									</div>
 								</div>
-								<div className="flex gap-4">
+								<div className="flex flex-wrap gap-4 items-end">
 									<div className="w-24">
 										<label className="block text-xs font-medium text-gray-700 mb-1">Qty</label>
 										<input
 											type="number"
 											min="1"
 											value={item.quantity}
-											onChange={(e) => setBillItems(prev => prev.map(i => i.id === item.id ? { ...i, quantity: e.target.value } : i))}
+											onChange={(e) => {
+												const qty = e.target.value;
+												setBillItems(prev => prev.map(i => {
+													if (i.id !== item.id) return i;
+													const q = parseFloat(qty) || 0;
+													const r = parseFloat(i.rate) || 0;
+													return { ...i, quantity: qty, amount: r > 0 ? String(q * r) : i.amount };
+												}));
+											}}
 											className="w-full border-gray-300 rounded-md px-3 py-1.5 border text-sm"
+										/>
+									</div>
+									<div className="w-32">
+										<label className="block text-xs font-medium text-gray-700 mb-1">Rate (₹)</label>
+										<input
+											type="number"
+											min="0"
+											value={item.rate ?? ""}
+											onChange={(e) => {
+												const rate = e.target.value;
+												setBillItems(prev => prev.map(i => {
+													if (i.id !== item.id) return i;
+													const q = parseFloat(i.quantity) || 0;
+													const r = parseFloat(rate) || 0;
+													return { ...i, rate, amount: String(q * r) };
+												}));
+											}}
+											className="w-full border-gray-300 rounded-md px-3 py-1.5 border text-sm"
+											placeholder="0"
 										/>
 									</div>
 									<div className="w-32">
@@ -188,17 +215,22 @@ export function BillForm({
 											min="0"
 											value={item.amount}
 											onChange={(e) => setBillItems(prev => prev.map(i => i.id === item.id ? { ...i, amount: e.target.value } : i))}
-											className="w-full border-gray-300 rounded-md px-3 py-1.5 border text-sm"
+											className="w-full border-gray-300 rounded-md px-3 py-1.5 border text-sm bg-gray-50"
 											placeholder="0"
 										/>
 									</div>
+									{(parseFloat(item.quantity) || 0) > 0 && (parseFloat(item.rate) || 0) > 0 && (
+										<div className="text-xs text-gray-500 pb-2">
+											{item.quantity} × ₹{item.rate} = <span className="font-bold text-slate-700">₹{(parseFloat(item.quantity) || 0) * (parseFloat(item.rate) || 0)}</span>
+										</div>
+									)}
 								</div>
 							</div>
 						))}
 						
 						<button
 							type="button"
-							onClick={() => setBillItems(prev => [...prev, { id: Date.now().toString() + Math.random().toString(), option: predefinedOptions[0], description: "", quantity: "1", amount: "" }])}
+							onClick={() => setBillItems(prev => [...prev, { id: Date.now().toString() + Math.random().toString(), option: predefinedOptions[0], description: "", quantity: "1", rate: "", amount: "" }])}
 							className="mt-3 w-full py-2 border-2 border-dashed border-gray-300 rounded-md text-gray-600 font-medium hover:bg-gray-50 hover:border-gray-400 transition-colors flex items-center justify-center gap-2 bg-white"
 						>
 							<span className="text-xl leading-none">+</span> Add New Item
