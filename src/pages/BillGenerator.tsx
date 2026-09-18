@@ -4,7 +4,7 @@ import { BillForm } from "../components/bill/BillForm";
 import { BillToolbar } from "../components/bill/BillToolbar";
 import { storage } from "../services/storage";
 import type { BillData, BillItem } from "../types/invoice";
-import { downloadAsJPG, downloadAs2UpPDF, build2UpPDFFromElement, sharePDFViaWhatsApp, shareOrDownloadBlob, openWhatsAppChat } from "../utils/downloadHelper";
+import { downloadAsJPG, downloadAsPDF, buildPDFFromElement, sharePDFViaWhatsApp, shareOrDownloadBlob, openWhatsAppChat } from "../utils/downloadHelper";
 
 const uid = () => crypto.randomUUID();
 
@@ -121,7 +121,7 @@ export function BillGenerator() {
 		setDownloading(true);
 		await new Promise(r => setTimeout(r, 60));
 		try {
-			await downloadAs2UpPDF(el, `bill_${billNo}.pdf`);
+			await downloadAsPDF(el, `bill_${billNo}.pdf`);
 		} catch (e) {
 			console.error(e);
 			alert("Failed to generate PDF");
@@ -186,7 +186,7 @@ export function BillGenerator() {
 		const filename = `bill_${billNo}.pdf`;
 		setDownloading(true);
 		try {
-			const pdfBlob = await build2UpPDFFromElement(el);
+			const pdfBlob = await buildPDFFromElement(el);
 			const file = new File([pdfBlob], filename, { type: "application/pdf" });
 
 			// Backup to R2 (fire-and-forget)

@@ -124,36 +124,14 @@ export const downloadAsPDF = async (element: HTMLElement, filename: string) => {
 	const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 	const imgAspect = img.naturalWidth / img.naturalHeight;
 	// Full-width render height in mm
-	const fullH = A4_W_MM / imgAspect;
+	let fullH = A4_W_MM / imgAspect;
 
-	if (fullH <= A4_H_MM + 1) {
-		pdf.addImage(dataUrl, "JPEG", 0, 0, A4_W_MM, fullH);
-	} else {
-		// Slice the tall image across multiple A4 pages via canvas crops
-		const pageCount = Math.ceil(fullH / A4_H_MM);
-		const srcW = img.naturalWidth;
-		const srcHPerPage = Math.floor(srcW * (A4_H_MM / A4_W_MM));
-		const canvas = document.createElement("canvas");
-		canvas.width = srcW;
-		canvas.height = srcHPerPage;
-		const ctx = canvas.getContext("2d");
-
-		for (let p = 0; p < pageCount; p++) {
-			const sy = p * srcHPerPage;
-			const sh = Math.min(srcHPerPage, img.naturalHeight - sy);
-			if (sh <= 0) break;
-			if (ctx) {
-				ctx.fillStyle = "#ffffff";
-				ctx.fillRect(0, 0, canvas.width, canvas.height);
-				ctx.drawImage(img, 0, sy, srcW, sh, 0, 0, srcW, sh);
-				const sliceUrl = canvas.toDataURL("image/jpeg", 0.92);
-				const sliceH =
-					sh === srcHPerPage ? A4_H_MM : (sh / srcW) * A4_W_MM;
-				if (p > 0) pdf.addPage("a4", "portrait");
-				pdf.addImage(sliceUrl, "JPEG", 0, 0, A4_W_MM, sliceH);
-			}
-		}
+	// Strictly fit into ONE A4 page to prevent tiny 2nd page spillover
+	if (fullH > A4_H_MM) {
+		fullH = A4_H_MM;
 	}
+
+	pdf.addImage(dataUrl, "JPEG", 0, 0, A4_W_MM, fullH);
 
 	const pdfBlob = pdf.output("blob") as Blob;
 	await shareOrDownloadBlob(pdfBlob, name);
