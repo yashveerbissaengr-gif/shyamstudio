@@ -2,7 +2,7 @@ import { useRef, useState, useEffect, type CSSProperties } from "react";
 import { Link, useParams } from "react-router-dom";
 import { storage } from "../services/storage";
 import type { BillData } from "../types/invoice";
-import { downloadAsJPG, downloadAsPDF, buildPDFFromElement, sharePDFViaWhatsApp, shareOrDownloadBlob, openWhatsAppChat } from "../utils/downloadHelper";
+import { downloadAsJPG, downloadAs2UpPDF, build2UpPDFFromElement, sharePDFViaWhatsApp, shareOrDownloadBlob, openWhatsAppChat } from "../utils/downloadHelper";
 
 export function BillViewer() {
 	const { id } = useParams();
@@ -24,10 +24,11 @@ export function BillViewer() {
 	const containerRef = useRef<HTMLDivElement>(null);
 
 	const handleDownloadJPG = async () => {
-		if (!docRef.current || !bill) return;
+		const el = document.getElementById("bill-capture") as HTMLElement;
+		if (!el || !bill) return;
 		setDownloading(true);
 		try {
-			await downloadAsJPG(docRef.current, `bill_${bill.billNo}.jpg`);
+			await downloadAsJPG(el, `bill_${bill.billNo}.jpg`);
 		} catch (e) {
 			console.error(e);
 			alert("Failed to generate JPG");
@@ -37,10 +38,11 @@ export function BillViewer() {
 	};
 
 	const handleDownloadPDF = async () => {
-		if (!docRef.current || !bill) return;
+		const el = document.getElementById("bill-capture") as HTMLElement;
+		if (!el || !bill) return;
 		setDownloading(true);
 		try {
-			await downloadAsPDF(docRef.current, `bill_${bill.billNo}.pdf`);
+			await downloadAs2UpPDF(el, `bill_${bill.billNo}.pdf`);
 		} catch (e) {
 			console.error(e);
 			alert("Failed to generate PDF");
@@ -70,14 +72,15 @@ export function BillViewer() {
 		}
 
 		// Direct PDF send: generate the bill PDF, then share FILE + message.
-		if (!canvasRef.current) {
+		const el = document.getElementById("bill-capture") as HTMLElement;
+		if (!el) {
 			openWhatsAppChat(targetMobile, message);
 			return;
 		}
 		const filename = `bill_${bill.billNo}.pdf`;
 		setDownloading(true);
 		try {
-			const pdfBlob = await buildPDFFromElement(canvasRef.current);
+			const pdfBlob = await build2UpPDFFromElement(el);
 			const shared = await sharePDFViaWhatsApp(pdfBlob, filename, message);
 			if (!shared) {
 				await shareOrDownloadBlob(pdfBlob, filename);
@@ -323,7 +326,7 @@ export function BillViewer() {
         /* A4 Layout CSS — fixed 794px kept on phones, scaled with zoom */
         .bill-container { --red:#f10b0b; --ink:#111; --watermark:#c8c8c8; color:var(--ink); font-family:Arial, Helvetica, sans-serif; width:794px; max-width:none; flex-shrink:0; margin:0 auto; }
         .bill-container * { box-sizing:border-box; }
-        .bill-container .bill { position:relative; width:794px; max-width:none; min-height:11.69in; margin:0 auto; padding:36px 42px 32px; overflow:hidden; background:#fff; box-shadow:0 4px 24px #0002; }
+        .bill-container .bill { position:relative; width:794px; max-width:none; height:1123px; margin:0 auto; padding:36px 42px 32px; overflow:hidden; background:#fff; box-shadow:0 4px 24px #0002; }
         .bill-container .watermark { position:absolute; inset:215px -100px 170px; z-index:0; pointer-events:none; transform:rotate(-24deg); color:var(--watermark); font-family:cursive; font-size:108px; font-weight:700; line-height:1.85; opacity:.9; white-space:nowrap; text-align:center; }
         .bill-container .content { position:relative; z-index:1; }
         .bill-container .brand { margin:0; text-align:center; color:var(--red); font-family:Georgia, "Times New Roman", serif; font-size:45px; line-height:1.15; font-weight:700; }

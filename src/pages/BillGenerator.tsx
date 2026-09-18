@@ -4,7 +4,7 @@ import { BillForm } from "../components/bill/BillForm";
 import { BillToolbar } from "../components/bill/BillToolbar";
 import { storage } from "../services/storage";
 import type { BillData, BillItem } from "../types/invoice";
-import { downloadAsJPG, downloadAsPDF, buildPDFFromElement, sharePDFViaWhatsApp, shareOrDownloadBlob, openWhatsAppChat } from "../utils/downloadHelper";
+import { downloadAsJPG, downloadAs2UpPDF, build2UpPDFFromElement, sharePDFViaWhatsApp, shareOrDownloadBlob, openWhatsAppChat } from "../utils/downloadHelper";
 
 const uid = () => crypto.randomUUID();
 
@@ -121,7 +121,7 @@ export function BillGenerator() {
 		setDownloading(true);
 		await new Promise(r => setTimeout(r, 60));
 		try {
-			await downloadAsPDF(el, `bill_${billNo}.pdf`);
+			await downloadAs2UpPDF(el, `bill_${billNo}.pdf`);
 		} catch (e) {
 			console.error(e);
 			alert("Failed to generate PDF");
@@ -177,7 +177,8 @@ export function BillGenerator() {
 		// Direct PDF send: generate the bill PDF, then share the FILE + message
 		// via the system sheet (pick WhatsApp → PDF arrives attached).
 		// Falls back to download + text-only chat on desktop.
-		if (!docRef.current) {
+		const el = document.getElementById('bill-capture') as HTMLElement;
+		if (!el) {
 			openWhatsAppChat(targetMobile, message);
 			return;
 		}
@@ -185,7 +186,7 @@ export function BillGenerator() {
 		const filename = `bill_${billNo}.pdf`;
 		setDownloading(true);
 		try {
-			const pdfBlob = await buildPDFFromElement(docRef.current);
+			const pdfBlob = await build2UpPDFFromElement(el);
 			const file = new File([pdfBlob], filename, { type: "application/pdf" });
 
 			// Backup to R2 (fire-and-forget)
@@ -410,7 +411,7 @@ export function BillGenerator() {
            CSS zoom (layout-aware) so full bill stays visible/scrollable */
         .bill-container { --red:#f10b0b; --ink:#111; --watermark:#c8c8c8; color:var(--ink); font-family:Arial, Helvetica, sans-serif; width:794px; max-width:none; flex-shrink:0; margin:0 auto; }
         .bill-container * { box-sizing:border-box; }
-        .bill-container .bill { position:relative; width:794px; max-width:none; min-height:11.69in; margin:0 auto; padding:36px 42px 32px; overflow:hidden; background:#fff; }
+        .bill-container .bill { position:relative; width:794px; max-width:none; height:1123px; margin:0 auto; padding:36px 42px 32px; overflow:hidden; background:#fff; }
         .bill-container .watermark { position:absolute; inset:215px -100px 170px; z-index:0; pointer-events:none; transform:rotate(-24deg); color:var(--watermark); font-family:cursive; font-size:108px; font-weight:700; line-height:1.85; opacity:.2; white-space:nowrap; text-align:center; }
         .bill-container .content { position:relative; z-index:1; }
         .bill-container .brand { margin:0; text-align:center; color:var(--red); font-family:Georgia, "Times New Roman", serif; font-size:45px; line-height:1.15; font-weight:700; }

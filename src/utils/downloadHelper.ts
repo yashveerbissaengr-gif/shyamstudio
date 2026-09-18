@@ -159,6 +159,34 @@ export const downloadAsPDF = async (element: HTMLElement, filename: string) => {
 	await shareOrDownloadBlob(pdfBlob, name);
 };
 
+/** Creates an A4 PDF with TWO copies of the element side-by-side in the top half (A5 size each). */
+export const downloadAs2UpPDF = async (element: HTMLElement, filename: string) => {
+	const name = filename.endsWith(".pdf") ? filename : `${filename}.pdf`;
+	const dataUrl = await nodeToJpegDataUrl(element);
+
+	const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+		const i = new Image();
+		i.onload = () => resolve(i);
+		i.onerror = reject;
+		i.src = dataUrl;
+	});
+
+	const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+	
+	// A4 is 210x297. Top half is 210x148.5. 
+	// Side-by-side means each is 105x148.5 (A6).
+	const halfW = A4_W_MM / 2;
+	const halfH = A4_H_MM / 2;
+
+	// Draw first copy on the top left
+	pdf.addImage(dataUrl, "JPEG", 0, 0, halfW, halfH);
+	// Draw second copy on the top right
+	pdf.addImage(dataUrl, "JPEG", halfW, 0, halfW, halfH);
+
+	const pdfBlob = pdf.output("blob") as Blob;
+	await shareOrDownloadBlob(pdfBlob, name);
+};
+
 /** One PDF page per source node — used for the 3-page invoice. */
 export const downloadMultiPagePDFFromNodes = async (
 	nodes: HTMLElement[],
@@ -177,16 +205,24 @@ export const downloadMultiPagePDFFromNodes = async (
 	await shareOrDownloadBlob(pdfBlob, name);
 };
 
-/** Returns the PDF as a Blob (for WhatsApp share flows) using full-width capture. */
-export const buildPDFFromNodes = async (
-	nodes: HTMLElement[],
+export const build2UpPDFFromElement = async (
+	element: HTMLElement,
 ): Promise<Blob> => {
-	const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
-	for (let i = 0; i < nodes.length; i++) {
-		const dataUrl = await nodeToJpegDataUrl(nodes[i]);
-		if (i > 0) pdf.addPage("a4", "portrait");
-		pdf.addImage(dataUrl, "JPEG", 0, 0, A4_W_MM, A4_H_MM);
-	}
+	const dataUrl = await nodeToJpegDataUrl(element);
+	const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+		const i = new Image();
+		i.onload = () => resolve(i);
+		i.onerror = reject;
+		i.src = dataUrl;
+	});
+	const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+	
+	const halfW = A4_W_MM / 2;
+	const halfH = A4_H_MM / 2;
+
+	pdf.addImage(dataUrl, "JPEG", 0, 0, halfW, halfH);
+	pdf.addImage(dataUrl, "JPEG", halfW, 0, halfW, halfH);
+	
 	return pdf.output("blob") as Blob;
 };
 
