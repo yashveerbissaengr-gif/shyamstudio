@@ -2,7 +2,7 @@ import { useRef, useState, useEffect, type CSSProperties } from "react";
 import { Link, useParams } from "react-router-dom";
 import { storage } from "../services/storage";
 import type { BillData } from "../types/invoice";
-import { downloadAsJPG, downloadAsPDF, buildPDFFromElement, sharePDFViaWhatsApp, shareOrDownloadBlob, openWhatsAppChat } from "../utils/downloadHelper";
+import { downloadAsJPG, downloadAs2UpPDF, build2UpPDFFromElement, sharePDFViaWhatsApp, shareOrDownloadBlob, openWhatsAppChat } from "../utils/downloadHelper";
 
 export function BillViewer() {
 	const { id } = useParams();
@@ -42,7 +42,7 @@ export function BillViewer() {
 		if (!el || !bill) return;
 		setDownloading(true);
 		try {
-			await downloadAsPDF(el, `bill_${bill.billNo}.pdf`);
+			await downloadAs2UpPDF(el, `bill_${bill.billNo}.pdf`);
 		} catch (e) {
 			console.error(e);
 			alert("Failed to generate PDF");
@@ -80,7 +80,7 @@ export function BillViewer() {
 		const filename = `bill_${bill.billNo}.pdf`;
 		setDownloading(true);
 		try {
-			const pdfBlob = await buildPDFFromElement(el);
+			const pdfBlob = await build2UpPDFFromElement(el);
 			const shared = await sharePDFViaWhatsApp(pdfBlob, filename, message);
 			if (!shared) {
 				await shareOrDownloadBlob(pdfBlob, filename);
@@ -392,7 +392,7 @@ export function BillViewer() {
           
           .print-only { display: block !important; }
 
-          html,body { -webkit-print-color-adjust:exact; print-color-adjust:exact; background: #ffffff !important; }
+          html,body { -webkit-print-color-adjust:exact; print-color-adjust:exact; background: #ffffff !important; margin: 0; padding: 0; height: 100%; overflow: hidden !important; }
         }
       `}</style>
 
